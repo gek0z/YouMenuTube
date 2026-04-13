@@ -67,7 +67,16 @@ jobs:
           git tag -a "${{ steps.next.outputs.tag }}" \
             -m "Release ${{ steps.next.outputs.tag }} (auto-bumped from ${{ steps.next.outputs.previous }})"
           git push origin "${{ steps.next.outputs.tag }}"
-          echo "Pushed ${{ steps.next.outputs.tag }} — Release workflow will pick it up."
+
+      - name: Trigger Release workflow
+        # Tags pushed by GITHUB_TOKEN don't trigger downstream workflows
+        # (GitHub's anti-infinite-loop), so dispatch Release explicitly.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run release.yml \
+            --repo "${{ github.repository }}" \
+            -f tag="${{ steps.next.outputs.tag }}"
 
       - name: Summary
         run: |
