@@ -36,7 +36,12 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  # Group on the actual release target (tag input or current ref) so that
+  # parallel runs for different releases don't supersede each other in the
+  # pending queue. Without this, a workflow_dispatch for v0.1.1 and a
+  # nightly push to main share the same group and the dispatch gets
+  # cancelled when a newer push arrives.
+  group: release-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
 
 jobs:
