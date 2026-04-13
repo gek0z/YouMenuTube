@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: write
+  actions: write   # required by `gh workflow run` to dispatch Release
 
 jobs:
   tag:

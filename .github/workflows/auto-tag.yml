@@ -16,15 +16,17 @@ on:
   push:
     branches: [main]
     paths:
+      # Only files that affect the produced binary trigger an auto-tag.
+      # Workflow / CI changes do *not* — that was the source of the
+      # version-inflation we got while iterating on the workflows themselves.
       - "Sources/**"
       - "Tests/**"
       - "project.yml"
       - "bootstrap.sh"
-      - ".github/workflows/release.yml"
-      - ".github/workflows/auto-tag.yml"
 
 permissions:
   contents: write
+  actions: write   # required by `gh workflow run` to dispatch Release
 
 concurrency:
   group: auto-tag-main
