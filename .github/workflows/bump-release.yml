@@ -1,0 +1,82 @@
+name: Bump & Release
+
+# Manual entry point for cutting a tagged release. Reads the latest v* tag,
+# bumps it according to the chosen part (patch by default), creates the new
+# tag at the current main commit, and pushes it. The push then fires
+# .github/workflows/release.yml which builds the DMG and creates the draft
+# GitHub Release.
+#
+# Usage: Actions tab → "Bump & Release" → Run workflow → pick patch/minor/major.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Which part of vX.Y.Z to bump"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    name: Compute & push next tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: next
+        run: |
+          LAST=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "v0.0.0")
+          BASE="${LAST#v}"
+          MAJOR=$(echo "$BASE" | cut -d. -f1)
+          MINOR=$(echo "$BASE" | cut -d. -f2)
+          PATCH=$(echo "$BASE" | cut -d. -f3)
+          case "${{ inputs.bump }}" in
+            major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR+1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH+1)) ;;
+          esac
+          NEW="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "tag=$NEW"     >> "$GITHUB_OUTPUT"
+          echo "previous=$LAST" >> "$GITHUB_OUTPUT"
+          echo "Bumping ${LAST} → ${NEW} (${{ inputs.bump }})"
+
+      - name: Refuse if tag already exists
+        run: |
+          if git rev-parse "${{ steps.next.outputs.tag }}" >/dev/null 2>&1; then
+            echo "::error::${{ steps.next.outputs.tag }} already exists"
+            exit 1
+          fi
+
+      - name: Create and push annotated tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.next.outputs.tag }}" \
+            -m "Release ${{ steps.next.outputs.tag }} (auto-bumped from ${{ steps.next.outputs.previous }})"
+          git push origin "${{ steps.next.outputs.tag }}"
+          echo "Pushed ${{ steps.next.outputs.tag }} — Release workflow will pick it up."
+
+      - name: Summary
+        run: |
+          {
+            echo "## Released ${{ steps.next.outputs.tag }}"
+            echo ""
+            echo "- Previous: \`${{ steps.next.outputs.previous }}\`"
+            echo "- New: \`${{ steps.next.outputs.tag }}\`"
+            echo "- Bump: \`${{ inputs.bump }}\`"
+            echo ""
+            echo "The Release workflow has been triggered by the tag push and will produce a draft GitHub Release with the DMG attached."
+          } >> "$GITHUB_STEP_SUMMARY"
