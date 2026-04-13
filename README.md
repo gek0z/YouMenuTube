@@ -7,7 +7,7 @@ A macOS menu-bar app that puts YouTube in your menubar:
 - Browse your **Playlists** (including **Watch Later** and **Liked Videos**)
 - **Search** YouTube
 - **Settings** for default playlist & playback
-- Click any video to play it in an embedded mini player
+- Click any video to play it in a chrome-less, 16:9 floating mini player
 
 Built with SwiftUI `MenuBarExtra`, targeting **macOS 15 Sequoia or later**.
 Powered by [YouTubeKit](https://github.com/b5i/YouTubeKit) — talks to
@@ -98,6 +98,15 @@ loaded with `baseURL = https://youmenutube.local/`. The fake-but-real-looking
 parent origin is what makes YouTube's IFrame player initialize — loading
 the embed URL top-level returns error 153, and `baseURL = youtube.com`
 (same-origin parent) returns 152-4.
+
+The window itself uses `.windowStyle(.plain)` for a fully chrome-less look,
+locked to a 16:9 aspect ratio via `NSWindow.aspectRatio`. Because plain
+(borderless) windows can't normally become key or be resized, the underlying
+`NSWindow`'s styleMask is patched to add `.resizable` — which restores both
+edge-resize handles and Cmd+W. A 28pt strip at the top of the player fades
+in on hover, hosting a small ✕ close button and a `performDrag(with:)`-backed
+draggable region (since the WKWebView itself swallows mouse events). By
+default the window floats above other apps; toggle this in Settings.
 
 ## Troubleshooting
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(YouTubeService.self) private var yt
     @AppStorage("player.autoplay") private var autoplay: Bool = true
+    @AppStorage("player.floatOnTop") private var floatOnTop: Bool = true
     @AppStorage("playlists.pinnedId")    private var pinnedId: String = ""
     @AppStorage("playlists.pinnedTitle") private var pinnedTitle: String = ""
 
@@ -56,6 +57,7 @@ struct SettingsView: View {
 
             Section("Player") {
                 Toggle("Autoplay when opening a video", isOn: $autoplay)
+                Toggle("Keep player window floating on top", isOn: $floatOnTop)
             }
 
             Section("About") {

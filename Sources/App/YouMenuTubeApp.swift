@@ -20,6 +20,7 @@ struct YouMenuTubeApp: App {
             PlayerWindow()
                 .environment(player)
         }
+        .windowStyle(.plain)
         .windowResizability(.contentSize)
         .defaultLaunchBehavior(.suppressed)
 

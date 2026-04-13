@@ -1,24 +1,112 @@
+import AppKit
 import SwiftUI
 import WebKit
 
 struct PlayerWindow: View {
     @Environment(PlayerController.self) private var player
+    @Environment(\.dismissWindow) private var dismissWindow
     @AppStorage("player.autoplay") private var autoplay: Bool = true
+    @AppStorage("player.floatOnTop") private var floatOnTop: Bool = true
+    @State private var isHovering = false
 
     var body: some View {
-        Group {
-            if let vid = player.videoId {
-                YouTubeEmbedView(videoId: vid, autoplay: autoplay)
-                    .frame(minWidth: 640, minHeight: 360)
-                    .navigationTitle(player.title ?? "YouMenuTube")
-            } else {
-                VStack(spacing: 8) {
-                    Image(systemName: "play.rectangle").font(.largeTitle).foregroundStyle(.secondary)
-                    Text("Pick a video from the menu bar.").foregroundStyle(.secondary)
+        ZStack(alignment: .top) {
+            content
+            // Hover-revealed strip at the top: drag area + close button.
+            // Hidden when mouse leaves so YouTube's own overlay controls
+            // (title, more menu) remain clickable through the WKWebView.
+            if isHovering {
+                ZStack(alignment: .leading) {
+                    DragHandle()
+                    Button {
+                        player.stop()
+                        dismissWindow(id: "player")
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(.white, .black.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.leading, 8)
                 }
-                .frame(width: 420, height: 240)
+                .frame(height: 28)
+                .frame(maxWidth: .infinity)
+                .background(LinearGradient(
+                    colors: [.black.opacity(0.55), .clear],
+                    startPoint: .top, endPoint: .bottom
+                ))
+                .transition(.opacity)
             }
         }
+        .animation(.easeInOut(duration: 0.12), value: isHovering)
+        .onHover { isHovering = $0 }
+        .background(WindowConfigurator(floatOnTop: floatOnTop))
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let vid = player.videoId {
+            YouTubeEmbedView(videoId: vid, autoplay: autoplay)
+                .frame(minWidth: 240, minHeight: 135)
+        } else {
+            VStack(spacing: 8) {
+                Image(systemName: "play.rectangle").font(.largeTitle).foregroundStyle(.secondary)
+                Text("Pick a video from the menu bar.").foregroundStyle(.secondary)
+            }
+            .frame(minWidth: 240, minHeight: 135)
+        }
+    }
+}
+
+/// Tiny NSView whose only job is to forward mouse-down to NSWindow.performDrag,
+/// giving us a draggable region inside an otherwise event-consuming WKWebView.
+private struct DragHandle: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView { DraggableNSView() }
+    func updateNSView(_ view: NSView, context: Context) {}
+}
+
+private final class DraggableNSView: NSView {
+    override func mouseDown(with event: NSEvent) {
+        window?.performDrag(with: event)
+    }
+}
+
+/// Reaches into the underlying NSWindow to hide the traffic-light buttons,
+/// keep the window draggable from its (now-invisible) title bar area, and
+/// toggle the floating level whenever the user changes the preference.
+private struct WindowConfigurator: NSViewRepresentable {
+    let floatOnTop: Bool
+
+    func makeNSView(context: Context) -> NSView {
+        let view = WindowAwareView()
+        view.onWindow = { [floatOnTop] window in apply(to: window, floatOnTop: floatOnTop) }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        apply(to: nsView.window, floatOnTop: floatOnTop)
+    }
+
+    private func apply(to window: NSWindow?, floatOnTop: Bool) {
+        guard let window else { return }
+        window.level = floatOnTop ? .floating : .normal
+        window.isMovableByWindowBackground = true
+        // .plain windows are .borderless, which means they can't become key
+        // (Cmd+W won't fire) and have no resize handles. Inserting .resizable
+        // gives back both: edge-resize works and the window accepts keyboard
+        // shortcuts targeting it.
+        window.styleMask.insert(.resizable)
+        window.aspectRatio = NSSize(width: 16, height: 9)
+        window.minSize = NSSize(width: 240, height: 135)
+    }
+}
+
+private final class WindowAwareView: NSView {
+    var onWindow: ((NSWindow?) -> Void)?
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        onWindow?(window)
     }
 }
 
