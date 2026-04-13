@@ -47,16 +47,9 @@ struct SearchView: View {
             } else if results.isEmpty {
                 ContentUnavailableView.search(text: query)
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(results) { entry in
-                            VideoRow(entry: entry) {
-                                player.play(videoId: entry.id, title: entry.title)
-                                openWindow(id: "player")
-                            }
-                            Divider().opacity(0.3)
-                        }
-                    }
+                VideoList(entries: results) { entry in
+                    player.play(videoId: entry.id, title: entry.title)
+                    openWindow(id: WindowID.player)
                 }
             }
         }

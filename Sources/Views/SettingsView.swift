@@ -28,7 +28,7 @@ struct SettingsView: View {
                         Button("Sign out", role: .destructive) { yt.signOut() }
                             .controlSize(.small)
                     } else {
-                        Button("Sign in") { openWindow(id: "youtube-signin") }
+                        Button("Sign in") { openWindow(id: WindowID.signIn) }
                             .controlSize(.small)
                     }
                 }
@@ -43,8 +43,8 @@ struct SettingsView: View {
                     HStack {
                         Picker("Default playlist", selection: pinnedSelection) {
                             Text("None").tag(Optional<String>.none)
-                            Text("Watch Later").tag(Optional("VLWL"))
-                            Text("Liked Videos").tag(Optional("VLLL"))
+                            Text("Watch Later").tag(Optional(BuiltInPlaylist.watchLater))
+                            Text("Liked Videos").tag(Optional(BuiltInPlaylist.likedVideos))
                             if !playlists.isEmpty {
                                 Divider()
                                 ForEach(playlists) { p in
@@ -147,23 +147,19 @@ struct SettingsView: View {
     private var pinnedSelection: Binding<String?> {
         Binding(
             get: {
-                switch pinnedId {
-                case "": return nil
-                case "WL": return "VLWL"  // migrate legacy stored values
-                case "LL": return "VLLL"
-                default: return pinnedId
-                }
+                if pinnedId.isEmpty { return nil }
+                return BuiltInPlaylist.migrated(pinnedId) ?? pinnedId
             },
             set: { newValue in
                 switch newValue {
                 case nil:
                     pinnedId = ""
                     pinnedTitle = ""
-                case "VLWL":
-                    pinnedId = "VLWL"
+                case BuiltInPlaylist.watchLater:
+                    pinnedId = BuiltInPlaylist.watchLater
                     pinnedTitle = "Watch Later"
-                case "VLLL":
-                    pinnedId = "VLLL"
+                case BuiltInPlaylist.likedVideos:
+                    pinnedId = BuiltInPlaylist.likedVideos
                     pinnedTitle = "Liked Videos"
                 case .some(let id):
                     pinnedId = id

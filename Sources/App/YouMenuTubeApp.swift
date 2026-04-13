@@ -20,7 +20,7 @@ struct YouMenuTubeApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Window("Now Playing", id: "player") {
+        Window("Now Playing", id: WindowID.player) {
             PlayerWindow()
                 .environment(player)
         }
@@ -28,7 +28,7 @@ struct YouMenuTubeApp: App {
         .windowResizability(.contentSize)
         .defaultLaunchBehavior(.suppressed)
 
-        Window("Sign in to YouTube", id: "youtube-signin") {
+        Window("Sign in to YouTube", id: WindowID.signIn) {
             YouTubeSignInWindow()
                 .environment(yt)
         }

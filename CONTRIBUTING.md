@@ -25,8 +25,10 @@ See the "Project layout" section of the [README](README.md). High-level:
 - `Sources/Services/` — `YouTubeService` (the only network surface),
   `PlayerController`, `RefreshTrigger`, `Keychain`.
 - `Sources/Views/` — one SwiftUI view per tab, plus the player and sign-in
-  windows.
+  windows. `VideoFeedList` / `VideoList` / `ErrorInline` are the shared
+  building blocks.
 - `Sources/Models/` — `VideoEntry`, `PlaylistEntry`.
+- `Sources/Utilities/` — `WindowID`, `UserAgent`, `BuiltInPlaylist`.
 - `Tests/` — Swift Testing target.
 
 ## Format, lint, test

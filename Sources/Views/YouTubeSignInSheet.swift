@@ -87,13 +87,13 @@ struct YouTubeSignInWindow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 Spacer()
-                Button("Cancel") { dismissWindow(id: "youtube-signin") }
+                Button("Cancel") { dismissWindow(id: WindowID.signIn) }
                 Button {
                     Task {
                         isCapturing = true
                         defer { isCapturing = false }
                         let ok = await yt.captureCookiesFromSharedStore()
-                        if ok { dismissWindow(id: "youtube-signin") }
+                        if ok { dismissWindow(id: WindowID.signIn) }
                     }
                 } label: {
                     Text("Done").frame(minWidth: 60)
@@ -119,7 +119,7 @@ struct YouTubeSignInWindow: View {
                 let ok = await yt.captureCookiesFromSharedStore()
                 if ok {
                     signInLog.notice("auto-capture succeeded — closing sign-in window")
-                    dismissWindow(id: "youtube-signin")
+                    dismissWindow(id: WindowID.signIn)
                 } else {
                     signInLog.notice("auto-capture deferred — waiting for user")
                     didAutoCapture = false
@@ -138,9 +138,7 @@ private struct SignInWebView: NSViewRepresentable {
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .default()
         let view = WKWebView(frame: .zero, configuration: config)
-        // Spoof Safari — Google blocks Google sign-in from the default WKWebView UA.
-        view.customUserAgent =
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Safari/605.1.15"
+        view.customUserAgent = UserAgent.safari
         view.navigationDelegate = holder
         holder.webView = view
         onReady(view)

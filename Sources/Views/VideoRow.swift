@@ -51,3 +51,36 @@ struct ThumbnailView: View {
         .transaction { $0.animation = nil }
     }
 }
+
+/// Scrollable list of `VideoRow`s with thin dividers. Used by any screen
+/// that renders a flat list of videos (home, subscriptions, playlist
+/// detail, search).
+struct VideoList: View {
+    let entries: [VideoEntry]
+    let onPlay: (VideoEntry) -> Void
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(entries) { entry in
+                    VideoRow(entry: entry) { onPlay(entry) }
+                    Divider().opacity(0.3)
+                }
+            }
+        }
+    }
+}
+
+struct ErrorInline: View {
+    let message: String
+    var onRetry: () -> Void
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
+            Text(message).font(.caption).multilineTextAlignment(.center).foregroundStyle(.secondary)
+            Button("Retry", action: onRetry).controlSize(.small)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}

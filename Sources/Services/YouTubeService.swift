@@ -23,15 +23,19 @@ final class YouTubeService {
 
     init() {
         self.model = YouTubeModel()
-        if let header = Self.loadCookieHeader() {
+        if let data = Keychain.get(cookiesKey), let header = String(data: data, encoding: .utf8) {
             apply(cookies: header)
         }
     }
 
     // MARK: - Auth (cookies)
 
-    private static func loadCookieHeader() -> String? {
-        Keychain.get("youtube.cookies.v1").flatMap { String(data: $0, encoding: .utf8) }
+    /// A WKWebsiteDataRecord is "ours" if it's hosted under youtube.com or
+    /// google.com — those are the only domains our sign-in flow touches,
+    /// and wiping them between attempts prevents Google's detection from
+    /// latching onto stale visitor cookies.
+    private static func isYouTubeOrGoogle(_ record: WKWebsiteDataRecord) -> Bool {
+        record.displayName.contains("youtube") || record.displayName.contains("google")
     }
 
     private func apply(cookies: String) {
@@ -51,8 +55,7 @@ final class YouTubeService {
             WKWebsiteDataTypeCookies, WKWebsiteDataTypeLocalStorage, WKWebsiteDataTypeSessionStorage,
         ]
         store.fetchDataRecords(ofTypes: types) { records in
-            let toRemove = records.filter { $0.displayName.contains("youtube") || $0.displayName.contains("google") }
-            store.removeData(ofTypes: types, for: toRemove) {}
+            store.removeData(ofTypes: types, for: records.filter(Self.isYouTubeOrGoogle)) {}
         }
     }
 
@@ -112,9 +115,7 @@ final class YouTubeService {
         let records: [WKWebsiteDataRecord] = await withCheckedContinuation { cont in
             store.fetchDataRecords(ofTypes: types) { cont.resume(returning: $0) }
         }
-        let targets = records.filter {
-            $0.displayName.contains("youtube") || $0.displayName.contains("google")
-        }
+        let targets = records.filter(Self.isYouTubeOrGoogle)
         log.notice(
             "clear: wiping \(targets.count) site-data records (\(targets.map(\.displayName).joined(separator: ","), privacy: .public))"
         )

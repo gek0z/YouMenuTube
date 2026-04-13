@@ -84,8 +84,11 @@ YouMenuTube/
 │   │   └── Keychain.swift
 │   ├── Models/
 │   │   └── YouTubeModels.swift      # VideoEntry, PlaylistEntry
+│   ├── Utilities/
+│   │   └── Constants.swift          # WindowID, UserAgent, BuiltInPlaylist
 │   └── Views/
-│       ├── VideoRow.swift
+│       ├── VideoRow.swift           # VideoRow, VideoList, ErrorInline, ThumbnailView
+│       ├── VideoFeedList.swift      # Shared load/error/empty/list wrapper
 │       ├── HomeFeedView.swift
 │       ├── SubscriptionsFeedView.swift
 │       ├── PlaylistsView.swift      # API + WL/LL synthetic rows

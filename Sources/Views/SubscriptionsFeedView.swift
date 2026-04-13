@@ -2,64 +2,18 @@ import SwiftUI
 
 struct SubscriptionsFeedView: View {
     @Environment(YouTubeService.self) private var yt
-    @Environment(PlayerController.self) private var player
-    @Environment(RefreshTrigger.self) private var refresh
-    @Environment(\.openWindow) private var openWindow
     @AppStorage("subscriptions.hideShorts") private var hideShorts: Bool = true
-    @State private var entries: [VideoEntry] = []
-    @State private var isLoading = false
-    @State private var error: String?
-
-    private var visibleEntries: [VideoEntry] {
-        hideShorts ? entries.filter { !$0.isShort } : entries
-    }
 
     var body: some View {
-        Group {
-            if let error {
-                ErrorInline(message: error) { Task { await load() } }
-            } else if isLoading && visibleEntries.isEmpty {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if visibleEntries.isEmpty {
+        VideoFeedList(
+            load: { try await yt.subscriptionsFeed() },
+            include: { !hideShorts || !$0.isShort },
+            empty: {
                 ContentUnavailableView(
                     "No recent videos",
                     systemImage: "rectangle.stack.badge.play",
                     description: Text("Subscribe to a few channels to see their latest uploads."))
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(visibleEntries) { entry in
-                            VideoRow(entry: entry) {
-                                player.play(videoId: entry.id, title: entry.title)
-                                openWindow(id: "player")
-                            }
-                            Divider().opacity(0.3)
-                        }
-                    }
-                }
             }
-        }
-        .task(id: refresh.counter) { await load() }
-    }
-
-    private func load() async {
-        isLoading = true
-        error = nil
-        defer { isLoading = false }
-        do { entries = try await yt.subscriptionsFeed() } catch { self.error = error.localizedDescription }
-    }
-}
-
-struct ErrorInline: View {
-    let message: String
-    var onRetry: () -> Void
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
-            Text(message).font(.caption).multilineTextAlignment(.center).foregroundStyle(.secondary)
-            Button("Retry", action: onRetry).controlSize(.small)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        )
     }
 }

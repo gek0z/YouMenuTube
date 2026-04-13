@@ -20,7 +20,7 @@ struct PlayerWindow: View {
                     DragHandle()
                     Button {
                         player.stop()
-                        dismissWindow(id: "player")
+                        dismissWindow(id: WindowID.player)
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 16))
@@ -124,10 +124,7 @@ struct YouTubeEmbedView: NSViewRepresentable {
         config.allowsAirPlayForMediaPlayback = true
         let view = WKWebView(frame: .zero, configuration: config)
         view.setValue(false, forKey: "drawsBackground")
-        // Same Safari UA spoof as the sign-in view — YouTube's embed player
-        // also fingerprints WKWebView's default UA and shows error 152-4.
-        view.customUserAgent =
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Safari/605.1.15"
+        view.customUserAgent = UserAgent.safari
         load(into: view, coordinator: context.coordinator)
         return view
     }

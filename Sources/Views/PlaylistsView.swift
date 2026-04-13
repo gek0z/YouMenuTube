@@ -1,11 +1,7 @@
 import SwiftUI
 
-private let watchLaterId = "VLWL"
-private let likedVideosId = "VLLL"
-
 struct PlaylistsView: View {
     @Environment(YouTubeService.self) private var yt
-    @Environment(PlayerController.self) private var player
     @Environment(RefreshTrigger.self) private var refresh
     @AppStorage("playlists.pinnedId") private var pinnedId: String = ""
     @AppStorage("playlists.pinnedTitle") private var pinnedTitle: String = ""
@@ -25,7 +21,7 @@ struct PlaylistsView: View {
             }
         }
         .onAppear {
-            migrateLegacyPinId()
+            if let migrated = BuiltInPlaylist.migrated(pinnedId) { pinnedId = migrated }
             guard !appliedPinOnAppear else { return }
             appliedPinOnAppear = true
             if selected == nil, !pinnedId.isEmpty {
@@ -38,22 +34,11 @@ struct PlaylistsView: View {
         }
     }
 
-    /// Values saved before the switch to YouTubeKit were stored as raw "WL"
-    /// / "LL" — YouTubeKit wants them VL-prefixed.
-    private func migrateLegacyPinId() {
-        switch pinnedId {
-        case "WL": pinnedId = watchLaterId
-        case "LL": pinnedId = likedVideosId
-        default: break
-        }
-    }
-
     /// `myPlaylists()` returns Watch Later and Liked Videos as ordinary
     /// playlists too. Drop them so they don't render twice alongside the
     /// synthetic built-in rows.
     private func isUserPlaylist(_ p: PlaylistEntry) -> Bool {
-        let builtinIds: Set<String> = [watchLaterId, likedVideosId, "WL", "LL"]
-        if builtinIds.contains(p.id) { return false }
+        if BuiltInPlaylist.allIds.contains(p.id) { return false }
         let title = p.title.lowercased()
         return title != "watch later" && title != "liked videos"
     }
@@ -67,9 +52,9 @@ struct PlaylistsView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        syntheticRow(id: watchLaterId, title: "Watch Later", system: "clock")
+                        syntheticRow(id: BuiltInPlaylist.watchLater, title: "Watch Later", system: "clock")
                         Divider().opacity(0.3)
-                        syntheticRow(id: likedVideosId, title: "Liked Videos", system: "hand.thumbsup")
+                        syntheticRow(id: BuiltInPlaylist.likedVideos, title: "Liked Videos", system: "hand.thumbsup")
                         Divider().opacity(0.3)
                         ForEach(playlists.filter(isUserPlaylist)) { p in
                             row(p)
@@ -154,12 +139,6 @@ struct PlaylistDetailView: View {
     var onBack: () -> Void
 
     @Environment(YouTubeService.self) private var yt
-    @Environment(PlayerController.self) private var player
-    @Environment(RefreshTrigger.self) private var refresh
-    @Environment(\.openWindow) private var openWindow
-    @State private var items: [VideoEntry] = []
-    @State private var isLoading = false
-    @State private var error: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -171,38 +150,14 @@ struct PlaylistDetailView: View {
             }
             .padding(.horizontal, 8).padding(.vertical, 6)
 
-            if let error {
-                ErrorInline(message: error) { Task { await load() } }
-            } else if isLoading && items.isEmpty {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if items.isEmpty {
+            VideoFeedList(
+                load: { try await yt.playlistItems(playlistId: playlist.id) }
+            ) {
                 ContentUnavailableView(
                     "Empty playlist",
                     systemImage: "music.note.list",
                     description: Text("No videos in this playlist."))
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(items) { entry in
-                            VideoRow(entry: entry) {
-                                player.play(videoId: entry.id, title: entry.title)
-                                openWindow(id: "player")
-                            }
-                            Divider().opacity(0.3)
-                        }
-                    }
-                }
             }
-        }
-        .task(id: refresh.counter) { await load() }
-    }
-
-    private func load() async {
-        isLoading = true
-        error = nil
-        defer { isLoading = false }
-        do { items = try await yt.playlistItems(playlistId: playlist.id) } catch {
-            self.error = error.localizedDescription
         }
     }
 }

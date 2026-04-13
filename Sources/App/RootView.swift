@@ -47,7 +47,7 @@ struct RootView: View {
     }
 
     private func presentSignIn() {
-        openWindow(id: "youtube-signin")
+        openWindow(id: WindowID.signIn)
     }
 
     private var header: some View {
