@@ -123,6 +123,17 @@ final class YouTubeService {
         }
     }
 
+    // MARK: - Home feed
+
+    /// YouTube's main home recommendations. Works signed-out (returns generic
+    /// suggestions) but is much richer with cookies attached.
+    func homeFeed() async throws -> [VideoEntry] {
+        let resp = try await HomeScreenResponse.sendThrowingRequest(
+            youtubeModel: model, data: [:], useCookies: true
+        )
+        return resp.results.map(Self.entry(from:))
+    }
+
     // MARK: - Subscriptions feed
 
     func subscriptionsFeed() async throws -> [VideoEntry] {

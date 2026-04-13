@@ -5,6 +5,7 @@ struct SettingsView: View {
     @AppStorage("player.autoplay") private var autoplay: Bool = true
     @AppStorage("player.floatOnTop") private var floatOnTop: Bool = true
     @AppStorage("subscriptions.hideShorts") private var hideShorts: Bool = true
+    @AppStorage("home.hideShorts") private var hideHomeShorts: Bool = true
     @AppStorage("playlists.pinnedId") private var pinnedId: String = ""
     @AppStorage("playlists.pinnedTitle") private var pinnedTitle: String = ""
 
@@ -65,8 +66,9 @@ struct SettingsView: View {
                 Toggle("Keep player window floating on top", isOn: $floatOnTop)
             }
 
-            Section("Subscriptions") {
-                Toggle("Hide Shorts", isOn: $hideShorts)
+            Section("Feeds") {
+                Toggle("Hide Shorts in Home", isOn: $hideHomeShorts)
+                Toggle("Hide Shorts in Subscriptions", isOn: $hideShorts)
             }
 
             Section("About") {

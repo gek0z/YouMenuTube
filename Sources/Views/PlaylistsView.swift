@@ -6,6 +6,7 @@ private let likedVideosId = "VLLL"
 struct PlaylistsView: View {
     @Environment(YouTubeService.self) private var yt
     @Environment(PlayerController.self) private var player
+    @Environment(RefreshTrigger.self) private var refresh
     @AppStorage("playlists.pinnedId") private var pinnedId: String = ""
     @AppStorage("playlists.pinnedTitle") private var pinnedTitle: String = ""
 
@@ -58,20 +59,7 @@ struct PlaylistsView: View {
     }
 
     private var list: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("Your Playlists").font(.subheadline.weight(.semibold))
-                Spacer()
-                Button {
-                    Task { await load() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .buttonStyle(.borderless)
-                .disabled(isLoading)
-            }
-            .padding(.horizontal, 12).padding(.vertical, 6)
-
+        Group {
             if let error {
                 ErrorInline(message: error) { Task { await load() } }
             } else if isLoading && playlists.isEmpty {
@@ -91,7 +79,7 @@ struct PlaylistsView: View {
                 }
             }
         }
-        .task { if playlists.isEmpty { await load() } }
+        .task(id: refresh.counter) { await load() }
     }
 
     private func row(_ p: PlaylistEntry) -> some View {
@@ -167,6 +155,7 @@ struct PlaylistDetailView: View {
 
     @Environment(YouTubeService.self) private var yt
     @Environment(PlayerController.self) private var player
+    @Environment(RefreshTrigger.self) private var refresh
     @Environment(\.openWindow) private var openWindow
     @State private var items: [VideoEntry] = []
     @State private var isLoading = false
@@ -179,13 +168,6 @@ struct PlaylistDetailView: View {
                     .buttonStyle(.borderless)
                 Text(playlist.title).font(.subheadline.weight(.semibold)).lineLimit(1)
                 Spacer()
-                Button {
-                    Task { await load() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .buttonStyle(.borderless)
-                .disabled(isLoading)
             }
             .padding(.horizontal, 8).padding(.vertical, 6)
 
@@ -212,7 +194,7 @@ struct PlaylistDetailView: View {
                 }
             }
         }
-        .task { await load() }
+        .task(id: refresh.counter) { await load() }
     }
 
     private func load() async {

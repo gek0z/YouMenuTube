@@ -1,11 +1,12 @@
 import SwiftUI
 
 enum Tab: String, CaseIterable, Identifiable {
-    case subscriptions, playlists, search, settings
+    case home, subscriptions, playlists, search, settings
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .home: "Home"
         case .subscriptions: "Subscriptions"
         case .playlists: "Playlists"
         case .search: "Search"
@@ -15,6 +16,7 @@ enum Tab: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
+        case .home: "house"
         case .subscriptions: "rectangle.stack.badge.play"
         case .playlists: "music.note.list"
         case .search: "magnifyingglass"
@@ -25,8 +27,13 @@ enum Tab: String, CaseIterable, Identifiable {
 
 struct RootView: View {
     @Environment(YouTubeService.self) private var yt
+    @Environment(RefreshTrigger.self) private var refresh
     @Environment(\.openWindow) private var openWindow
-    @State private var tab: Tab = .subscriptions
+    @State private var tab: Tab = .home
+
+    /// Tabs whose content has a "reload from server" concept. The header
+    /// refresh button is hidden on tabs that don't.
+    private static let refreshableTabs: Set<Tab> = [.home, .subscriptions, .playlists]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -45,9 +52,18 @@ struct RootView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Image(systemName: "play.rectangle.fill").foregroundStyle(.red)
+            YouTubeLogo()
             Text("YouMenuTube").font(.headline)
             Spacer()
+            if Self.refreshableTabs.contains(tab) {
+                Button {
+                    refresh.ping()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+                .help("Refresh")
+            }
             if !yt.isSignedIn {
                 Button {
                     presentSignIn()
@@ -64,12 +80,16 @@ struct RootView: View {
 
     @ViewBuilder
     private var content: some View {
-        if !yt.isSignedIn && tab != .settings {
+        // Home + Search + Settings are usable signed-out (Home returns
+        // generic suggestions; Search hits the public endpoint).
+        let needsSignIn: Set<Tab> = [.subscriptions, .playlists]
+        if !yt.isSignedIn && needsSignIn.contains(tab) {
             SignInPlaceholder { presentSignIn() }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             Group {
                 switch tab {
+                case .home: HomeFeedView()
                 case .subscriptions: SubscriptionsFeedView()
                 case .playlists: PlaylistsView()
                 case .search: SearchView()
@@ -99,6 +119,19 @@ struct RootView: View {
             }
         }
         .padding(.horizontal, 4)
+    }
+}
+
+/// Compact YouTube-style mark: white play triangle on a rounded red plate.
+private struct YouTubeLogo: View {
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 4, style: .continuous).fill(.red)
+            Image(systemName: "play.fill")
+                .font(.system(size: 7, weight: .black))
+                .foregroundStyle(.white)
+        }
+        .frame(width: 18, height: 13)
     }
 }
 

@@ -27,9 +27,9 @@ struct SearchView: View {
                     .buttonStyle(.borderless).foregroundStyle(.secondary)
                 }
             }
-            .padding(.horizontal, 10).padding(.vertical, 6)
+            .padding(.horizontal, 10).padding(.vertical, 4)
             .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
-            .padding(.horizontal, 10).padding(.vertical, 6)
+            .padding(EdgeInsets(top: 4, leading: 10, bottom: 6, trailing: 10))
             .onChange(of: query) { _, _ in triggerSearch(immediate: false) }
 
             if let error {
@@ -40,7 +40,10 @@ struct SearchView: View {
                 ContentUnavailableView(
                     "Search YouTube",
                     systemImage: "magnifyingglass",
-                    description: Text("Type to find videos."))
+                    description: Text("Type to find videos.")
+                )
+                .padding(.top, 24)
+                Spacer(minLength: 0)
             } else if results.isEmpty {
                 ContentUnavailableView.search(text: query)
             } else {
