@@ -1,0 +1,17 @@
+.DS_Store
+build/
+DerivedData/
+*.xcodeproj/
+!project.yml
+*.xcuserdata/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+.swiftpm/
+Package.resolved
+
+# Local secrets
+Config.local.xcconfig
+
+# Local tool config
+.claude/

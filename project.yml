@@ -1,0 +1,61 @@
+name: YouMenuTube
+options:
+  bundleIdPrefix: com.youmenutube
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+
+configs:
+  Debug: debug
+  Release: release
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    ENABLE_APP_SANDBOX: NO
+  configs:
+    Debug:
+      SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+    Release:
+      SWIFT_OPTIMIZATION_LEVEL: "-O"
+
+packages:
+  YouTubeKit:
+    url: https://github.com/b5i/YouTubeKit.git
+    from: "2.0.0"
+
+targets:
+  YouMenuTube:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleName: YouMenuTube
+        CFBundleDisplayName: YouMenuTube
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "15.0"
+        LSUIElement: true
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+    entitlements:
+      path: Sources/YouMenuTube.entitlements
+      properties:
+        # Intentionally NOT sandboxed: WebKit's WebContent process gets the
+        # host app's sandbox, and an app-sandboxed host blocks pasteboard
+        # (so 1Password copy-paste fails) and ASAuthorization services (so
+        # passkey / Apple Passwords autofill can't surface in WKWebView).
+        com.apple.security.app-sandbox: false
+    dependencies:
+      - package: YouTubeKit
+        product: YouTubeKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.youmenutube.app
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: NO
