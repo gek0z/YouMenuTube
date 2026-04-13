@@ -2,11 +2,11 @@
 
 A macOS menu-bar app that puts YouTube in your menubar:
 
-- Sign in with your YouTube account
+- **Home** — YouTube's main recommendations feed
 - Latest videos from your **Subscriptions**
 - Browse your **Playlists** (including **Watch Later** and **Liked Videos**)
 - **Search** YouTube
-- **Settings** for default playlist & playback
+- **Settings** for default playlist, autoplay, floating-window behaviour, hide-Shorts
 - Click any video to play it in a chrome-less, 16:9 floating mini player
 
 Built with SwiftUI `MenuBarExtra`, targeting **macOS 15 Sequoia or later**.
@@ -15,9 +15,43 @@ YouTube's own internal "InnerTube" API directly. **No Google Cloud project,
 no API key, no OAuth client to set up.** You sign into youtube.com once
 inside the app and you're done.
 
-> **Heads-up.** InnerTube is YouTube's *unofficial, internal* API. It can
-> change without notice and using it isn't strictly within YouTube's ToS —
-> intended for personal use.
+> ## ⚠️ Important — read before installing
+>
+> **YouMenuTube is unofficial and not affiliated with, endorsed by, or
+> sponsored by YouTube, Google, or Alphabet.** All trademarks belong to
+> their respective owners.
+>
+> The app authenticates by capturing the cookies from a YouTube sign-in
+> performed inside an embedded `WKWebView`, then talks to YouTube's
+> internal **InnerTube** API via [YouTubeKit](https://github.com/b5i/YouTubeKit).
+> This is the same surface YouTube's own website uses, but it is **not a
+> public API** and using it is **arguably outside YouTube's Terms of
+> Service**. The API can — and occasionally does — change or break without
+> notice.
+>
+> **Use at your own risk.** Recommendations:
+> - Treat this as a personal-use project, not a production tool.
+> - Strongly consider using a secondary Google account, not your primary one.
+> - Don't expect notifications, video uploads, or anything beyond read-mostly
+>   playback / browsing.
+> - The maintainers accept no liability for account suspensions, data loss,
+>   or anything else (see `LICENSE`).
+
+## Install
+
+> Pre-built `.dmg` releases are coming. Until then, build from source —
+> see [Setup](#setup) below.
+
+When the first release is published:
+
+1. Download `YouMenuTube-<version>.dmg` from the [Releases page](https://github.com/gek0z/YouMenuTube/releases).
+2. Open the DMG and drag `YouMenuTube.app` into `/Applications`.
+3. **First launch** — because the build is ad-hoc signed (no paid Apple
+   Developer ID), Gatekeeper will refuse it on a normal double-click. Either:
+   - Right-click the app → **Open** → **Open** again in the prompt, *or*
+   - System Settings → Privacy & Security → "YouMenuTube was blocked …" →
+     **Open Anyway**.
+4. Subsequent launches work normally.
 
 ## Project layout
 
@@ -139,3 +173,21 @@ Configuration lives in [`.swift-format`](.swift-format) (line length 120, 4-spac
 - **Embed player shows error 153 / 152-4** — should not happen with the
   current wrapper; if it does, check `Sources/Views/PlayerWindow.swift` for
   changes to `baseURL` or the iframe `origin` query parameter.
+
+## Privacy
+
+YouMenuTube runs entirely on your Mac. There is no telemetry, no analytics,
+no crash reporting back-channel, no remote config. The only network traffic
+the app makes is to `youtube.com` / `accounts.google.com` (during sign-in)
+and to YouTube's own InnerTube endpoints (for feeds, playlists, search).
+
+Your YouTube session cookies — captured from the sign-in `WKWebView` and
+filtered to `*.youtube.com` only — are stored in the macOS Keychain under
+service `com.youmenutube.app`. They never leave your machine except as the
+`Cookie` header on requests YouTube itself receives. Sign out at any time
+to wipe them (Settings → Account → Sign out).
+
+## License
+
+YouMenuTube is licensed under the [Apache License 2.0](LICENSE). See
+[NOTICE](NOTICE) for third-party attribution.

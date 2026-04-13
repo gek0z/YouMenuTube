@@ -1,0 +1,176 @@
+name: Release
+
+# Two release modes, same workflow:
+#
+#   push to main   → rolling pre-release tagged `nightly`, version
+#                    "main-<short_sha>". Auto-published, replaces the previous
+#                    nightly DMG. Covers PR merges into main.
+#   push of v* tag → versioned draft release tagged with the tag (e.g. v0.1.0).
+#                    Maintainer publishes manually after a sanity check.
+#   manual dispatch → release for an existing tag (useful for re-runs).
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to release (e.g. v0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build & publish DMG
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Plan release
+        id: plan
+        run: |
+          if [[ -n "${{ inputs.tag }}" ]]; then
+            REF="${{ inputs.tag }}"
+            VERSION="${REF#v}"
+            TARGET_TAG="$REF"
+            NAME="$REF"
+            PRERELEASE=false
+            DRAFT=true
+            GENERATE_NOTES=true
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            REF="$GITHUB_REF_NAME"
+            VERSION="${REF#v}"
+            TARGET_TAG="$REF"
+            NAME="$REF"
+            PRERELEASE=false
+            DRAFT=true
+            GENERATE_NOTES=true
+          else
+            SHORT="$(git rev-parse --short HEAD)"
+            VERSION="main-$SHORT"
+            TARGET_TAG="nightly"
+            NAME="Latest main build ($SHORT)"
+            PRERELEASE=true
+            DRAFT=false
+            GENERATE_NOTES=false
+          fi
+          {
+            echo "version=$VERSION"
+            echo "tag=$TARGET_TAG"
+            echo "name=$NAME"
+            echo "prerelease=$PRERELEASE"
+            echo "draft=$DRAFT"
+            echo "generate_notes=$GENERATE_NOTES"
+          } >> "$GITHUB_OUTPUT"
+          echo "Plan → tag=$TARGET_TAG version=$VERSION prerelease=$PRERELEASE draft=$DRAFT"
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Install tooling
+        run: brew install xcodegen create-dmg
+
+      - name: Generate Xcode project
+        run: xcodegen generate --quiet
+
+      - name: Stamp version into Info.plist
+        run: |
+          /usr/libexec/PlistBuddy \
+            -c "Set :CFBundleShortVersionString ${{ steps.plan.outputs.version }}" \
+            -c "Set :CFBundleVersion ${{ steps.plan.outputs.version }}" \
+            Sources/Info.plist
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project YouMenuTube.xcodeproj \
+            -scheme YouMenuTube
+
+      - name: Build (Release, ad-hoc signed)
+        run: |
+          xcodebuild \
+            -project YouMenuTube.xcodeproj \
+            -scheme YouMenuTube \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGNING_REQUIRED=YES \
+            CODE_SIGNING_ALLOWED=YES \
+            build
+
+      - name: Locate built .app
+        id: app
+        run: |
+          APP=$(find build/Build/Products/Release -maxdepth 1 -name "*.app" | head -1)
+          if [[ -z "$APP" ]]; then
+            echo "No .app produced under build/Build/Products/Release!" >&2
+            exit 1
+          fi
+          echo "path=$APP" >> "$GITHUB_OUTPUT"
+          echo "Built: $APP"
+
+      - name: Re-sign deeply (ad-hoc)
+        run: codesign --force --deep --sign - "${{ steps.app.outputs.path }}"
+
+      - name: Verify signature
+        run: codesign --display --verbose=2 "${{ steps.app.outputs.path }}" || true
+
+      - name: Package DMG
+        run: |
+          DMG="YouMenuTube-${{ steps.plan.outputs.version }}.dmg"
+          create-dmg \
+            --volname "YouMenuTube ${{ steps.plan.outputs.version }}" \
+            --window-size 540 380 \
+            --icon-size 96 \
+            --icon "YouMenuTube.app" 140 180 \
+            --app-drop-link 400 180 \
+            --no-internet-enable \
+            --skip-jenkins \
+            "$DMG" \
+            "${{ steps.app.outputs.path }}"
+          echo "Built $DMG ($(du -h "$DMG" | cut -f1))"
+
+      - name: Move rolling `nightly` tag to current commit
+        if: steps.plan.outputs.tag == 'nightly'
+        run: |
+          git tag -f nightly
+          git push --force origin refs/tags/nightly
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.plan.outputs.tag }}
+          name: ${{ steps.plan.outputs.name }}
+          draft: ${{ steps.plan.outputs.draft }}
+          prerelease: ${{ steps.plan.outputs.prerelease }}
+          generate_release_notes: ${{ steps.plan.outputs.generate_notes }}
+          files: YouMenuTube-*.dmg
+          body: |
+            ## Install
+
+            Download the `.dmg` below, open it, drag **YouMenuTube.app** into `/Applications`.
+
+            > ⚠️ **First launch**: this build is **ad-hoc signed** (no paid Apple Developer ID), so Gatekeeper will refuse a normal double-click. Either:
+            > - Right-click the app → **Open** → **Open** again in the prompt, *or*
+            > - System Settings → Privacy & Security → "YouMenuTube was blocked …" → **Open Anyway**.
+            >
+            > Subsequent launches work normally.
+
+            ${{ steps.plan.outputs.tag == 'nightly' && '⚠️ This is a rolling **nightly** build from `main` — may be unstable. For tagged releases, see the Releases page sidebar.' || '' }}
+
+            See the [README](https://github.com/${{ github.repository }}#install) for full install / disclaimer / privacy notes.
