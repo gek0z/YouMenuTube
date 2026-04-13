@@ -64,6 +64,11 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.youmenutube.app
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: NO
+        # Xcode 15+ sandboxes script phases by default, which blocks our
+        # post-build stamp script from reading .git/HEAD and writing the
+        # built Info.plist. The script is trusted (it's in the repo), so
+        # opt out rather than enumerate every .git entry as an input.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
     postBuildScripts:
       - name: Stamp version + build number + git commit into Info.plist
         # Runs after Resources are processed but before code signing, so the
