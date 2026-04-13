@@ -101,10 +101,13 @@ struct SettingsView: View {
         let short = info["CFBundleShortVersionString"] as? String ?? "?"
         let build = info["CFBundleVersion"] as? String ?? "?"
         let commit = (info["GitCommit"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        let dev = (info["IsDevBuild"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        var head = short
+        if let dev { head += " (\(dev))" }
         if let commit, commit != build {
-            return "\(short) (\(build) · \(commit))"
+            return "\(head) — \(build) · \(commit)"
         }
-        return "\(short) (\(build))"
+        return "\(head) — \(build)"
     }
 
     @ViewBuilder
@@ -118,6 +121,11 @@ struct SettingsView: View {
             .font(.caption)
         case .upToDate:
             Label("You're on the latest release.", systemImage: "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .symbolRenderingMode(.hierarchical)
+        case .noPublishedRelease:
+            Label("No published release to compare against yet.", systemImage: "questionmark.circle")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .symbolRenderingMode(.hierarchical)

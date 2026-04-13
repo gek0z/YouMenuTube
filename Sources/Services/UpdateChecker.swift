@@ -16,6 +16,7 @@ final class UpdateChecker {
         case checking
         case upToDate
         case available(version: String, url: URL)
+        case noPublishedRelease
         case failed(String)
     }
 
@@ -51,6 +52,15 @@ final class UpdateChecker {
             let (data, response) = try await session.data(for: req)
             guard let http = response as? HTTPURLResponse else {
                 throw UpdateError.badResponse("non-HTTP response")
+            }
+            // 404 from /releases/latest means either no published (non-draft,
+            // non-prerelease) release exists yet, or the repo is private and
+            // we have no auth. Either way, surface it as a friendlier state
+            // than a raw error.
+            if http.statusCode == 404 {
+                state = .noPublishedRelease
+                log.notice("no published release yet (or private repo)")
+                return
             }
             guard http.statusCode == 200 else {
                 throw UpdateError.badResponse("HTTP \(http.statusCode)")

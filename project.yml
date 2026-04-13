@@ -39,10 +39,11 @@ targets:
         CFBundleDisplayName: YouMenuTube
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
-        # Stamped at build time by the postBuildScript below. Default kept
+        # Stamped at build time by the postBuildScript below. Defaults kept
         # blank so a brand-new clone shows a valid bundle even before the
         # script has ever run.
         GitCommit: ""
+        IsDevBuild: ""
         LSMinimumSystemVersion: "15.0"
         LSUIElement: true
         NSAppTransportSecurity:
@@ -83,17 +84,23 @@ targets:
           [ -f "$INFO_PLIST" ] || exit 0
           cd "${SRCROOT}"
 
-          # Version
+          # Version + dev marker
+          # Always store the *base* tag in CFBundleShortVersionString so the
+          # display version stays clean ("0.1.1"). The "dev" / commits-ahead
+          # detail goes into a separate IsDevBuild key that the UI surfaces.
+          IS_DEV=""
           if SHORT=$(git describe --exact-match --tags HEAD 2>/dev/null); then
             SHORT="${SHORT#v}"
           elif DESC=$(git describe --tags --match 'v*' 2>/dev/null); then
-            BASE=$(echo "$DESC" | sed -E 's/^v//; s/-[0-9]+-g[0-9a-f]+$//')
+            SHORT=$(echo "$DESC" | sed -E 's/^v//; s/-[0-9]+-g[0-9a-f]+$//')
             AHEAD=$(echo "$DESC" | sed -nE 's/.*-([0-9]+)-g[0-9a-f]+$/\1/p')
-            SHORT="${BASE}+${AHEAD}"
+            IS_DEV="dev+${AHEAD}"
           else
             SHORT=""   # no tags — keep whatever project.yml put in there
+            IS_DEV="dev"
           fi
           [ -n "$SHORT" ] && /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $SHORT" "$INFO_PLIST"
+          /usr/libexec/PlistBuddy -c "Set :IsDevBuild $IS_DEV" "$INFO_PLIST"
 
           # Monotonic build number
           BUILD=$(git rev-list --count HEAD 2>/dev/null || echo "1")
