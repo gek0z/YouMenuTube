@@ -93,6 +93,12 @@ sign-in from the default `WKWebView` UA. Site data for `youtube.com` /
 `google.com` is also cleared before the sheet loads, so stale visitor
 cookies from prior attempts don't trip Google's embedded-browser detection.
 
+The Now Playing window wraps `youtube.com/embed/<id>` in a tiny HTML page
+loaded with `baseURL = https://youmenutube.local/`. The fake-but-real-looking
+parent origin is what makes YouTube's IFrame player initialize — loading
+the embed URL top-level returns error 153, and `baseURL = youtube.com`
+(same-origin parent) returns 152-4.
+
 ## Troubleshooting
 
 - **Sheet doesn't auto-close after you sign in** — you haven't fully landed
@@ -108,6 +114,8 @@ cookies from prior attempts don't trip Google's embedded-browser detection.
   If session markers (SAPISID, SID, LOGIN_INFO, __Secure-3PSIDTS) are all
   present but InnerTube still says `loggedOut=true`, YouTubeKit may be out
   of date — check for a newer release.
-- **Embed player won't play** — some videos forbid embedding. Open the video
-  on youtube.com instead by editing `YouTubeEmbedView.load` in
-  `Sources/Views/PlayerWindow.swift`.
+- **Embed player shows error 150 / 101** — the uploader has disabled
+  embedding for that specific video; it can only be played on youtube.com.
+- **Embed player shows error 153 / 152-4** — should not happen with the
+  current wrapper; if it does, check `Sources/Views/PlayerWindow.swift` for
+  changes to `baseURL` or the iframe `origin` query parameter.

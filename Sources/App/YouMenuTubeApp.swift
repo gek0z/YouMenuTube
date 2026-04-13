@@ -7,7 +7,7 @@ struct YouMenuTubeApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarRoot()
+            RootView()
                 .environment(yt)
                 .environment(player)
                 .frame(width: 420, height: 560)
@@ -32,14 +32,3 @@ struct YouMenuTubeApp: App {
     }
 }
 
-private struct MenuBarRoot: View {
-    @Environment(PlayerController.self) private var player
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some View {
-        RootView()
-            .onChange(of: player.openRequestCounter) { _, _ in
-                openWindow(id: "player")
-            }
-    }
-}

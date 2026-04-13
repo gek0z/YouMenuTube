@@ -3,6 +3,7 @@ import SwiftUI
 struct SearchView: View {
     @Environment(YouTubeService.self) private var yt
     @Environment(PlayerController.self) private var player
+    @Environment(\.openWindow) private var openWindow
     @State private var query: String = ""
     @State private var results: [VideoEntry] = []
     @State private var isLoading = false
@@ -40,7 +41,10 @@ struct SearchView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(results) { entry in
-                            VideoRow(entry: entry) { player.play(videoId: entry.id, title: entry.title) }
+                            VideoRow(entry: entry) {
+                                player.play(videoId: entry.id, title: entry.title)
+                                openWindow(id: "player")
+                            }
                             Divider().opacity(0.3)
                         }
                     }

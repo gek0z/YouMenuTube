@@ -150,6 +150,7 @@ struct PlaylistDetailView: View {
 
     @Environment(YouTubeService.self) private var yt
     @Environment(PlayerController.self) private var player
+    @Environment(\.openWindow) private var openWindow
     @State private var items: [VideoEntry] = []
     @State private var isLoading = false
     @State private var error: String?
@@ -179,7 +180,10 @@ struct PlaylistDetailView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(items) { entry in
-                            VideoRow(entry: entry) { player.play(videoId: entry.id, title: entry.title) }
+                            VideoRow(entry: entry) {
+                                player.play(videoId: entry.id, title: entry.title)
+                                openWindow(id: "player")
+                            }
                             Divider().opacity(0.3)
                         }
                     }

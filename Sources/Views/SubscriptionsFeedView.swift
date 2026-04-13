@@ -3,6 +3,7 @@ import SwiftUI
 struct SubscriptionsFeedView: View {
     @Environment(YouTubeService.self) private var yt
     @Environment(PlayerController.self) private var player
+    @Environment(\.openWindow) private var openWindow
     @State private var entries: [VideoEntry] = []
     @State private var isLoading = false
     @State private var error: String?
@@ -30,7 +31,10 @@ struct SubscriptionsFeedView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(entries) { entry in
-                            VideoRow(entry: entry) { player.play(videoId: entry.id, title: entry.title) }
+                            VideoRow(entry: entry) {
+                                player.play(videoId: entry.id, title: entry.title)
+                                openWindow(id: "player")
+                            }
                             Divider().opacity(0.3)
                         }
                     }
