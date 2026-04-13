@@ -195,10 +195,11 @@ Releases are fully automated. The pipeline:
 
 Versioning: `CFBundleShortVersionString` is derived from `git describe`
 (post-build script in `project.yml`) — `0.1.0` on a tag, `0.1.0+N` past it.
-`CFBundleVersion` is `git rev-list --count HEAD` (monotonic). `GitCommit`
+`CFBundleVersion` is `git rev-list --count HEAD` (monotonic, kept for
+macOS update bookkeeping even though it isn't shown in UI). `GitCommit`
 holds the short SHA (with a `-dirty` suffix when the working tree has
-uncommitted changes). Settings → About displays them as
-`0.1.0 (17 · 19d5410)`.
+uncommitted changes). Settings → About displays marketing version and
+commit, e.g. `0.1.0 · 19d5410`.
 
 ## Troubleshooting
 

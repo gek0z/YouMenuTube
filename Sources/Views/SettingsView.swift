@@ -120,8 +120,8 @@ struct SettingsView: View {
         let dev = (info["IsDevBuild"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         var head = short
         if let dev { head += " (\(dev))" }
-        if let commit, commit != build {
-            return "\(head) — \(build) · \(commit)"
+        if let commit {
+            return "\(head) · \(commit)"
         }
         return "\(head) — \(build)"
     }
