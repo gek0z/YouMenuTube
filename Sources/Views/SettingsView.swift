@@ -12,6 +12,7 @@ struct SettingsView: View {
 
     @State private var playlists: [PlaylistEntry] = []
     @State private var loadingPlaylists = false
+    @State private var launchAtLogin: Bool = LoginItem.isEnabled
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -70,6 +71,21 @@ struct SettingsView: View {
             Section("Feeds") {
                 Toggle("Hide Shorts in Home", isOn: $hideHomeShorts)
                 Toggle("Hide Shorts in Subscriptions", isOn: $hideShorts)
+            }
+
+            Section("Startup") {
+                Toggle("Launch YouMenuTube at login", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, enabled in
+                        do {
+                            try LoginItem.setEnabled(enabled)
+                        } catch {
+                            launchAtLogin = LoginItem.isEnabled
+                        }
+                    }
+                if LoginItem.requiresApproval {
+                    Text("Approve YouMenuTube in System Settings → General → Login Items.")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
             }
 
             Section("About") {

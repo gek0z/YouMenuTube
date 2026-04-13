@@ -53,6 +53,7 @@ final class SignInWebViewHolder: NSObject, WKNavigationDelegate {
 
 struct YouTubeSignInWindow: View {
     @Environment(YouTubeService.self) private var yt
+    @Environment(DockPresence.self) private var dock
     @Environment(\.dismissWindow) private var dismissWindow
     @State private var isCapturing = false
     @State private var didAutoCapture = false
@@ -106,7 +107,9 @@ struct YouTubeSignInWindow: View {
         }
         .onAppear {
             NSApp.activate(ignoringOtherApps: true)
+            dock.present(WindowID.signIn)
         }
+        .onDisappear { dock.dismiss(WindowID.signIn) }
         .onChange(of: holder.isAtYouTube) { _, onYouTube in
             // Once the webview lands on youtube.com, try to capture silently.
             // If session cookies are present we're done; otherwise the user

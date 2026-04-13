@@ -4,6 +4,7 @@ import WebKit
 
 struct PlayerWindow: View {
     @Environment(PlayerController.self) private var player
+    @Environment(DockPresence.self) private var dock
     @Environment(\.dismissWindow) private var dismissWindow
     @AppStorage("player.autoplay") private var autoplay: Bool = true
     @AppStorage("player.floatOnTop") private var floatOnTop: Bool = true
@@ -44,6 +45,8 @@ struct PlayerWindow: View {
         .animation(.easeInOut(duration: 0.12), value: isHovering)
         .onHover { isHovering = $0 }
         .background(WindowConfigurator(floatOnTop: floatOnTop))
+        .onAppear { dock.present(WindowID.player) }
+        .onDisappear { dock.dismiss(WindowID.player) }
     }
 
     @ViewBuilder

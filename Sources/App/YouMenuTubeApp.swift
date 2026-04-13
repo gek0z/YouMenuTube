@@ -6,6 +6,7 @@ struct YouMenuTubeApp: App {
     @State private var player = PlayerController()
     @State private var refresh = RefreshTrigger()
     @State private var updates = UpdateChecker()
+    @State private var dock = DockPresence()
 
     var body: some Scene {
         MenuBarExtra {
@@ -23,6 +24,7 @@ struct YouMenuTubeApp: App {
         Window("Now Playing", id: WindowID.player) {
             PlayerWindow()
                 .environment(player)
+                .environment(dock)
         }
         .windowStyle(.plain)
         .windowResizability(.contentSize)
@@ -31,6 +33,7 @@ struct YouMenuTubeApp: App {
         Window("Sign in to YouTube", id: WindowID.signIn) {
             YouTubeSignInWindow()
                 .environment(yt)
+                .environment(dock)
         }
         .windowResizability(.contentSize)
         .defaultLaunchBehavior(.suppressed)
