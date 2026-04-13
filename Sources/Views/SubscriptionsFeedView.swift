@@ -4,33 +4,43 @@ struct SubscriptionsFeedView: View {
     @Environment(YouTubeService.self) private var yt
     @Environment(PlayerController.self) private var player
     @Environment(\.openWindow) private var openWindow
+    @AppStorage("subscriptions.hideShorts") private var hideShorts: Bool = true
     @State private var entries: [VideoEntry] = []
     @State private var isLoading = false
     @State private var error: String?
+
+    private var visibleEntries: [VideoEntry] {
+        hideShorts ? entries.filter { !$0.isShort } : entries
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
                 Text("Latest from Subscriptions").font(.subheadline.weight(.semibold))
                 Spacer()
-                Button { Task { await load() } } label: { Image(systemName: "arrow.clockwise") }
-                    .buttonStyle(.borderless)
-                    .disabled(isLoading)
+                Button {
+                    Task { await load() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+                .disabled(isLoading)
             }
             .padding(.horizontal, 12).padding(.vertical, 6)
 
             if let error {
                 ErrorInline(message: error) { Task { await load() } }
-            } else if isLoading && entries.isEmpty {
+            } else if isLoading && visibleEntries.isEmpty {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if entries.isEmpty {
-                ContentUnavailableView("No recent videos",
-                                       systemImage: "rectangle.stack.badge.play",
-                                       description: Text("Subscribe to a few channels to see their latest uploads."))
+            } else if visibleEntries.isEmpty {
+                ContentUnavailableView(
+                    "No recent videos",
+                    systemImage: "rectangle.stack.badge.play",
+                    description: Text("Subscribe to a few channels to see their latest uploads."))
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(entries) { entry in
+                        ForEach(visibleEntries) { entry in
                             VideoRow(entry: entry) {
                                 player.play(videoId: entry.id, title: entry.title)
                                 openWindow(id: "player")
@@ -45,10 +55,10 @@ struct SubscriptionsFeedView: View {
     }
 
     private func load() async {
-        isLoading = true; error = nil
+        isLoading = true
+        error = nil
         defer { isLoading = false }
-        do { entries = try await yt.subscriptionsFeed() }
-        catch { self.error = error.localizedDescription }
+        do { entries = try await yt.subscriptionsFeed() } catch { self.error = error.localizedDescription }
     }
 }
 

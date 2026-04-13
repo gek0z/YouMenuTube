@@ -6,7 +6,7 @@ private let likedVideosId = "VLLL"
 struct PlaylistsView: View {
     @Environment(YouTubeService.self) private var yt
     @Environment(PlayerController.self) private var player
-    @AppStorage("playlists.pinnedId")    private var pinnedId: String = ""
+    @AppStorage("playlists.pinnedId") private var pinnedId: String = ""
     @AppStorage("playlists.pinnedTitle") private var pinnedTitle: String = ""
 
     @State private var playlists: [PlaylistEntry] = []
@@ -28,10 +28,11 @@ struct PlaylistsView: View {
             guard !appliedPinOnAppear else { return }
             appliedPinOnAppear = true
             if selected == nil, !pinnedId.isEmpty {
-                selected = PlaylistEntry(id: pinnedId,
-                                         title: pinnedTitle.isEmpty ? "Pinned" : pinnedTitle,
-                                         videoCount: nil,
-                                         thumbnailURL: nil)
+                selected = PlaylistEntry(
+                    id: pinnedId,
+                    title: pinnedTitle.isEmpty ? "Pinned" : pinnedTitle,
+                    videoCount: nil,
+                    thumbnailURL: nil)
             }
         }
     }
@@ -46,14 +47,28 @@ struct PlaylistsView: View {
         }
     }
 
+    /// `myPlaylists()` returns Watch Later and Liked Videos as ordinary
+    /// playlists too. Drop them so they don't render twice alongside the
+    /// synthetic built-in rows.
+    private func isUserPlaylist(_ p: PlaylistEntry) -> Bool {
+        let builtinIds: Set<String> = [watchLaterId, likedVideosId, "WL", "LL"]
+        if builtinIds.contains(p.id) { return false }
+        let title = p.title.lowercased()
+        return title != "watch later" && title != "liked videos"
+    }
+
     private var list: some View {
         VStack(spacing: 0) {
             HStack {
                 Text("Your Playlists").font(.subheadline.weight(.semibold))
                 Spacer()
-                Button { Task { await load() } } label: { Image(systemName: "arrow.clockwise") }
-                    .buttonStyle(.borderless)
-                    .disabled(isLoading)
+                Button {
+                    Task { await load() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+                .disabled(isLoading)
             }
             .padding(.horizontal, 12).padding(.vertical, 6)
 
@@ -68,7 +83,7 @@ struct PlaylistsView: View {
                         Divider().opacity(0.3)
                         syntheticRow(id: likedVideosId, title: "Liked Videos", system: "hand.thumbsup")
                         Divider().opacity(0.3)
-                        ForEach(playlists) { p in
+                        ForEach(playlists.filter(isUserPlaylist)) { p in
                             row(p)
                             Divider().opacity(0.3)
                         }
@@ -124,9 +139,11 @@ struct PlaylistsView: View {
     private func pinButton(id: String, title: String) -> some View {
         Button {
             if pinnedId == id {
-                pinnedId = ""; pinnedTitle = ""
+                pinnedId = ""
+                pinnedTitle = ""
             } else {
-                pinnedId = id; pinnedTitle = title
+                pinnedId = id
+                pinnedTitle = title
             }
         } label: {
             Image(systemName: pinnedId == id ? "pin.fill" : "pin")
@@ -137,10 +154,10 @@ struct PlaylistsView: View {
     }
 
     private func load() async {
-        isLoading = true; error = nil
+        isLoading = true
+        error = nil
         defer { isLoading = false }
-        do { playlists = try await yt.myPlaylists() }
-        catch { self.error = error.localizedDescription }
+        do { playlists = try await yt.myPlaylists() } catch { self.error = error.localizedDescription }
     }
 }
 
@@ -162,9 +179,13 @@ struct PlaylistDetailView: View {
                     .buttonStyle(.borderless)
                 Text(playlist.title).font(.subheadline.weight(.semibold)).lineLimit(1)
                 Spacer()
-                Button { Task { await load() } } label: { Image(systemName: "arrow.clockwise") }
-                    .buttonStyle(.borderless)
-                    .disabled(isLoading)
+                Button {
+                    Task { await load() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+                .disabled(isLoading)
             }
             .padding(.horizontal, 8).padding(.vertical, 6)
 
@@ -173,9 +194,10 @@ struct PlaylistDetailView: View {
             } else if isLoading && items.isEmpty {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if items.isEmpty {
-                ContentUnavailableView("Empty playlist",
-                                       systemImage: "music.note.list",
-                                       description: Text("No videos in this playlist."))
+                ContentUnavailableView(
+                    "Empty playlist",
+                    systemImage: "music.note.list",
+                    description: Text("No videos in this playlist."))
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -194,9 +216,11 @@ struct PlaylistDetailView: View {
     }
 
     private func load() async {
-        isLoading = true; error = nil
+        isLoading = true
+        error = nil
         defer { isLoading = false }
-        do { items = try await yt.playlistItems(playlistId: playlist.id) }
-        catch { self.error = error.localizedDescription }
+        do { items = try await yt.playlistItems(playlistId: playlist.id) } catch {
+            self.error = error.localizedDescription
+        }
     }
 }

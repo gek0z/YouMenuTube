@@ -1,6 +1,6 @@
 import Foundation
-import Observation
 import OSLog
+import Observation
 import WebKit
 import YouTubeKit
 
@@ -47,7 +47,9 @@ final class YouTubeService {
         isSignedIn = false
 
         let store = WKWebsiteDataStore.default()
-        let types: Set<String> = [WKWebsiteDataTypeCookies, WKWebsiteDataTypeLocalStorage, WKWebsiteDataTypeSessionStorage]
+        let types: Set<String> = [
+            WKWebsiteDataTypeCookies, WKWebsiteDataTypeLocalStorage, WKWebsiteDataTypeSessionStorage,
+        ]
         store.fetchDataRecords(ofTypes: types) { records in
             let toRemove = records.filter { $0.displayName.contains("youtube") || $0.displayName.contains("google") }
             store.removeData(ofTypes: types, for: toRemove) {}
@@ -81,7 +83,7 @@ final class YouTubeService {
         let sessionMarkers: Set<String> = [
             "SAPISID", "__Secure-3PAPISID", "__Secure-1PAPISID",
             "SID", "__Secure-3PSID", "__Secure-1PSID",
-            "LOGIN_INFO"
+            "LOGIN_INFO",
         ]
         let present = Set(relevant.map(\.name)).intersection(sessionMarkers)
         log.notice("capture: session markers present → \(present.sorted().joined(separator: ","), privacy: .public)")
@@ -113,7 +115,9 @@ final class YouTubeService {
         let targets = records.filter {
             $0.displayName.contains("youtube") || $0.displayName.contains("google")
         }
-        log.notice("clear: wiping \(targets.count) site-data records (\(targets.map(\.displayName).joined(separator: ","), privacy: .public))")
+        log.notice(
+            "clear: wiping \(targets.count) site-data records (\(targets.map(\.displayName).joined(separator: ","), privacy: .public))"
+        )
         await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
             store.removeData(ofTypes: types, for: targets) { cont.resume() }
         }
@@ -173,12 +177,17 @@ final class YouTubeService {
 
     private static func entry(from v: YTVideo) -> VideoEntry {
         let bestThumb = v.thumbnails.max { ($0.width ?? 0) < ($1.width ?? 0) }
+        // YouTubeKit decodes shorts via decodeShortFromJSON / decodeShortFromLockupJSON,
+        // which leaves channel, timePosted, and timeLength all nil. Regular videos
+        // always carry at least one of these.
+        let isShort = v.channel == nil && v.timePosted == nil && v.timeLength == nil
         return VideoEntry(
             id: v.videoId,
             title: v.title ?? "(untitled)",
             channelTitle: v.channel?.name,
             timePosted: v.timePosted,
-            thumbnailURL: bestThumb?.url
+            thumbnailURL: bestThumb?.url,
+            isShort: isShort
         )
     }
 
@@ -199,8 +208,10 @@ enum YTServiceError: LocalizedError {
     case disconnected
     var errorDescription: String? {
         switch self {
-        case .notSignedIn:  return "Sign in to YouTube first."
-        case .disconnected: return "YouTube rejected the session. Sign out and sign in again — make sure you reach youtube.com logged-in (not just accounts.google.com)."
+        case .notSignedIn: return "Sign in to YouTube first."
+        case .disconnected:
+            return
+                "YouTube rejected the session. Sign out and sign in again — make sure you reach youtube.com logged-in (not just accounts.google.com)."
         }
     }
 }

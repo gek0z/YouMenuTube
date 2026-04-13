@@ -59,3 +59,16 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.youmenutube.app
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: NO
+
+  YouMenuTubeTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: YouMenuTube
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.youmenutube.app.tests
+        MACOSX_DEPLOYMENT_TARGET: "15.0"
+        GENERATE_INFOPLIST_FILE: YES

@@ -80,6 +80,13 @@ xcodebuild -resolvePackageDependencies \
     -scheme YouMenuTube \
     >/dev/null 2>&1 || yellow "  (package resolution will retry on first Xcode build)"
 
+# ── 5b. Pre-commit hook ──────────────────────────────────────────────────────
+if [[ -d .git ]]; then
+    step "Wiring git hooks"
+    git config core.hooksPath .githooks
+    green "  ✓ core.hooksPath = .githooks (runs swift-format on staged files)"
+fi
+
 # ── 6. Open ──────────────────────────────────────────────────────────────────
 if [[ "$open_xcode" -eq 1 ]]; then
     step "Opening in Xcode"

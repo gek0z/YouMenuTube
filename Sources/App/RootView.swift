@@ -7,18 +7,18 @@ enum Tab: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .subscriptions: "Subscriptions"
-        case .playlists:     "Playlists"
-        case .search:        "Search"
-        case .settings:      "Settings"
+        case .playlists: "Playlists"
+        case .search: "Search"
+        case .settings: "Settings"
         }
     }
 
     var systemImage: String {
         switch self {
         case .subscriptions: "rectangle.stack.badge.play"
-        case .playlists:     "music.note.list"
-        case .search:        "magnifyingglass"
-        case .settings:      "gearshape"
+        case .playlists: "music.note.list"
+        case .search: "magnifyingglass"
+        case .settings: "gearshape"
         }
     }
 }
@@ -48,16 +48,7 @@ struct RootView: View {
             Image(systemName: "play.rectangle.fill").foregroundStyle(.red)
             Text("YouMenuTube").font(.headline)
             Spacer()
-            if yt.isSignedIn {
-                Menu {
-                    Button("Sign out", role: .destructive) { yt.signOut() }
-                } label: {
-                    Label("Account", systemImage: "person.crop.circle")
-                        .labelStyle(.titleAndIcon)
-                }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-            } else {
+            if !yt.isSignedIn {
                 Button {
                     presentSignIn()
                 } label: {
@@ -80,9 +71,9 @@ struct RootView: View {
             Group {
                 switch tab {
                 case .subscriptions: SubscriptionsFeedView()
-                case .playlists:     PlaylistsView()
-                case .search:        SearchView()
-                case .settings:      SettingsView()
+                case .playlists: PlaylistsView()
+                case .search: SearchView()
+                case .settings: SettingsView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

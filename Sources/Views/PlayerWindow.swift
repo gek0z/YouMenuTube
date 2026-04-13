@@ -32,10 +32,12 @@ struct PlayerWindow: View {
                 }
                 .frame(height: 28)
                 .frame(maxWidth: .infinity)
-                .background(LinearGradient(
-                    colors: [.black.opacity(0.55), .clear],
-                    startPoint: .top, endPoint: .bottom
-                ))
+                .background(
+                    LinearGradient(
+                        colors: [.black.opacity(0.55), .clear],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
                 .transition(.opacity)
             }
         }
@@ -124,7 +126,8 @@ struct YouTubeEmbedView: NSViewRepresentable {
         view.setValue(false, forKey: "drawsBackground")
         // Same Safari UA spoof as the sign-in view — YouTube's embed player
         // also fingerprints WKWebView's default UA and shows error 152-4.
-        view.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Safari/605.1.15"
+        view.customUserAgent =
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Safari/605.1.15"
         load(into: view, coordinator: context.coordinator)
         return view
     }
@@ -149,23 +152,23 @@ struct YouTubeEmbedView: NSViewRepresentable {
         // a valid Referer, which is the combination the IFrame player accepts.
         let host = "youmenutube.local"
         let html = """
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-              html, body { margin: 0; padding: 0; background: #000; height: 100%; overflow: hidden; }
-              iframe { border: 0; width: 100%; height: 100%; }
-            </style>
-          </head>
-          <body>
-            <iframe
-              src="https://www.youtube.com/embed/\(videoId)?autoplay=\(ap)&playsinline=1&rel=0&modestbranding=1&origin=https://\(host)"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-              allowfullscreen></iframe>
-          </body>
-        </html>
-        """
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                  html, body { margin: 0; padding: 0; background: #000; height: 100%; overflow: hidden; }
+                  iframe { border: 0; width: 100%; height: 100%; }
+                </style>
+              </head>
+              <body>
+                <iframe
+                  src="https://www.youtube.com/embed/\(videoId)?autoplay=\(ap)&playsinline=1&rel=0&modestbranding=1&origin=https://\(host)"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                  allowfullscreen></iframe>
+              </body>
+            </html>
+            """
         view.loadHTMLString(html, baseURL: URL(string: "https://\(host)/")!)
     }
 

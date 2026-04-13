@@ -1,7 +1,7 @@
+import OSLog
+import Observation
 import SwiftUI
 import WebKit
-import Observation
-import OSLog
 
 private let signInLog = Logger(subsystem: "app.youmenutube", category: "signin")
 
@@ -42,7 +42,9 @@ final class SignInWebViewHolder: NSObject, WKNavigationDelegate {
         }
     }
 
-    nonisolated func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+    nonisolated func webView(
+        _ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error
+    ) {
         MainActor.assumeIsolated {
             signInLog.error("nav fail (provisional): \(error.localizedDescription, privacy: .public)")
         }
@@ -72,9 +74,10 @@ struct YouTubeSignInWindow: View {
             HStack(alignment: .center, spacing: 10) {
                 if isCapturing { ProgressView().controlSize(.small) }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(holder.isAtYouTube
-                         ? "On youtube.com — click Done to capture the session."
-                         : "Complete sign-in, then let the page land on youtube.com.")
+                    Text(
+                        holder.isAtYouTube
+                            ? "On youtube.com — click Done to capture the session."
+                            : "Complete sign-in, then let the page land on youtube.com.")
                     Text(holder.currentURL?.absoluteString ?? "loading…")
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(.tertiary)
@@ -136,7 +139,8 @@ private struct SignInWebView: NSViewRepresentable {
         config.websiteDataStore = .default()
         let view = WKWebView(frame: .zero, configuration: config)
         // Spoof Safari — Google blocks Google sign-in from the default WKWebView UA.
-        view.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Safari/605.1.15"
+        view.customUserAgent =
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Safari/605.1.15"
         view.navigationDelegate = holder
         holder.webView = view
         onReady(view)

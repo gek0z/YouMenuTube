@@ -4,7 +4,8 @@ struct SettingsView: View {
     @Environment(YouTubeService.self) private var yt
     @AppStorage("player.autoplay") private var autoplay: Bool = true
     @AppStorage("player.floatOnTop") private var floatOnTop: Bool = true
-    @AppStorage("playlists.pinnedId")    private var pinnedId: String = ""
+    @AppStorage("subscriptions.hideShorts") private var hideShorts: Bool = true
+    @AppStorage("playlists.pinnedId") private var pinnedId: String = ""
     @AppStorage("playlists.pinnedTitle") private var pinnedTitle: String = ""
 
     @State private var playlists: [PlaylistEntry] = []
@@ -15,8 +16,10 @@ struct SettingsView: View {
         Form {
             Section("Account") {
                 HStack {
-                    Image(systemName: yt.isSignedIn ? "checkmark.circle.fill" : "person.crop.circle.badge.exclamationmark")
-                        .foregroundStyle(yt.isSignedIn ? .green : .orange)
+                    Image(
+                        systemName: yt.isSignedIn ? "checkmark.circle.fill" : "person.crop.circle.badge.exclamationmark"
+                    )
+                    .foregroundStyle(yt.isSignedIn ? .green : .orange)
                     Text(yt.isSignedIn ? "Signed in to YouTube" : "Not signed in")
                     Spacer()
                     if yt.isSignedIn {
@@ -27,8 +30,10 @@ struct SettingsView: View {
                             .controlSize(.small)
                     }
                 }
-                Text("Uses YouTube's own internal API via your browser session — no Google Cloud setup needed. Personal use only.")
-                    .font(.caption2).foregroundStyle(.secondary)
+                Text(
+                    "Uses YouTube's own internal API via your browser session — no Google Cloud setup needed. Personal use only."
+                )
+                .font(.caption2).foregroundStyle(.secondary)
             }
 
             Section("Pinned playlist") {
@@ -60,8 +65,13 @@ struct SettingsView: View {
                 Toggle("Keep player window floating on top", isOn: $floatOnTop)
             }
 
+            Section("Subscriptions") {
+                Toggle("Hide Shorts", isOn: $hideShorts)
+            }
+
             Section("About") {
-                LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
+                LabeledContent(
+                    "Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
             }
 
             if let err = yt.lastError {
@@ -78,8 +88,7 @@ struct SettingsView: View {
             guard yt.isSignedIn, playlists.isEmpty else { return }
             loadingPlaylists = true
             defer { loadingPlaylists = false }
-            do { playlists = try await yt.myPlaylists() }
-            catch { /* picker just stays empty */ }
+            do { playlists = try await yt.myPlaylists() } catch { /* picker just stays empty */  }
         }
     }
 
@@ -87,21 +96,24 @@ struct SettingsView: View {
         Binding(
             get: {
                 switch pinnedId {
-                case "":    return nil
-                case "WL":  return "VLWL"   // migrate legacy stored values
-                case "LL":  return "VLLL"
-                default:    return pinnedId
+                case "": return nil
+                case "WL": return "VLWL"  // migrate legacy stored values
+                case "LL": return "VLLL"
+                default: return pinnedId
                 }
             },
             set: { newValue in
                 switch newValue {
                 case nil:
-                    pinnedId = ""; pinnedTitle = ""
+                    pinnedId = ""
+                    pinnedTitle = ""
                 case "VLWL":
-                    pinnedId = "VLWL"; pinnedTitle = "Watch Later"
+                    pinnedId = "VLWL"
+                    pinnedTitle = "Watch Later"
                 case "VLLL":
-                    pinnedId = "VLLL"; pinnedTitle = "Liked Videos"
-                case let .some(id):
+                    pinnedId = "VLLL"
+                    pinnedTitle = "Liked Videos"
+                case .some(let id):
                     pinnedId = id
                     pinnedTitle = playlists.first(where: { $0.id == id })?.title ?? ""
                 }

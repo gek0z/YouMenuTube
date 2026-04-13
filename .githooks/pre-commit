@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# YouMenuTube pre-commit hook
+# Runs swift-format in lint mode on staged .swift files. Auto-installed by
+# bootstrap.sh via `git config core.hooksPath .githooks`.
+set -euo pipefail
+
+bold()   { printf '\033[1m%s\033[0m\n' "$*"; }
+red()    { printf '\033[1;31m%s\033[0m\n' "$*" >&2; }
+green()  { printf '\033[1;32m%s\033[0m\n' "$*"; }
+
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.swift$' || true)
+if [[ -z "$staged" ]]; then
+    exit 0
+fi
+
+if ! command -v xcrun >/dev/null 2>&1; then
+    red "xcrun not available — install Xcode command-line tools."
+    exit 1
+fi
+
+bold "▸ swift-format lint on staged Swift files"
+fail=0
+while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    if ! xcrun swift-format lint --strict --configuration .swift-format "$f"; then
+        fail=1
+    fi
+done <<< "$staged"
+
+if [[ "$fail" -eq 1 ]]; then
+    red "✗ Formatting issues. Fix with: xcrun swift-format format -i -r Sources Tests"
+    exit 1
+fi
+
+green "✓ swift-format ok"

@@ -32,4 +32,3 @@ struct YouMenuTubeApp: App {
         .defaultLaunchBehavior(.suppressed)
     }
 }
-

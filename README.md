@@ -108,6 +108,17 @@ in on hover, hosting a small ✕ close button and a `performDrag(with:)`-backed
 draggable region (since the WKWebView itself swallows mouse events). By
 default the window floats above other apps; toggle this in Settings.
 
+## Development
+
+| Tool | What | How to run |
+|------|------|------------|
+| `swift-format` | Format & lint Swift sources | `xcrun swift-format format -i -r --configuration .swift-format Sources Tests` (write) / `... lint --strict ...` (check) |
+| Swift Testing | Unit tests under `Tests/` | `xcodebuild ... test` (or ⌘U in Xcode) |
+| Pre-commit hook | Runs swift-format lint on staged files | Auto-installed by `bootstrap.sh` (`git config core.hooksPath .githooks`); see `.githooks/pre-commit` |
+| GitHub Actions | CI on push / PR — format, build, test on `macos-15` | `.github/workflows/ci.yml` |
+
+Configuration lives in [`.swift-format`](.swift-format) (line length 120, 4-space indent).
+
 ## Troubleshooting
 
 - **Sheet doesn't auto-close after you sign in** — you haven't fully landed

@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build & Test (macOS 15)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate --quiet
+
+      - name: swift-format lint
+        run: xcrun swift-format lint --strict --recursive --configuration .swift-format Sources Tests
+
+      - name: Resolve packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project YouMenuTube.xcodeproj \
+            -scheme YouMenuTube
+
+      - name: Build
+        run: |
+          xcodebuild \
+            -project YouMenuTube.xcodeproj \
+            -scheme YouMenuTube \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Test
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project YouMenuTube.xcodeproj \
+            -scheme YouMenuTube \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            test
