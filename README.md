@@ -115,7 +115,7 @@ default the window floats above other apps; toggle this in Settings.
 | `swift-format` | Format & lint Swift sources | `xcrun swift-format format -i -r --configuration .swift-format Sources Tests` (write) / `... lint --strict ...` (check) |
 | Swift Testing | Unit tests under `Tests/` | `xcodebuild ... test` (or ⌘U in Xcode) |
 | Pre-commit hook | Runs swift-format lint on staged files | Auto-installed by `bootstrap.sh` (`git config core.hooksPath .githooks`); see `.githooks/pre-commit` |
-| GitHub Actions | CI on push / PR — format, build, test on `macos-15` | `.github/workflows/ci.yml` |
+| GitHub Actions | CI — format, build, test on `macos-15`. Opt-in only: add the `run-ci` label to a PR (or use the "Run workflow" button) so macOS minutes aren't burned on every push | `.github/workflows/ci.yml` |
 
 Configuration lives in [`.swift-format`](.swift-format) (line length 120, 4-space indent).
 

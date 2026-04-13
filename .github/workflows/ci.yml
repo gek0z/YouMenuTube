@@ -1,9 +1,12 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
+  # Only fires the actual job when a PR carries the `run-ci` label, or when
+  # someone manually clicks "Run workflow" — keeps macOS minutes from being
+  # burned on every push.
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -13,6 +16,9 @@ jobs:
   build-test:
     name: Build & Test (macOS 15)
     runs-on: macos-15
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - uses: actions/checkout@v4
 
