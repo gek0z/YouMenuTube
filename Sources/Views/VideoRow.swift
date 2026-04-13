@@ -3,6 +3,7 @@ import SwiftUI
 struct VideoRow: View {
     let entry: VideoEntry
     var onPlay: () -> Void
+    @Environment(YouTubeService.self) private var yt
 
     var body: some View {
         Button(action: onPlay) {
@@ -23,12 +24,48 @@ struct VideoRow: View {
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, minHeight: 68, alignment: .topLeading)
+                if yt.isSignedIn {
+                    WatchLaterToggle(videoId: entry.id)
+                        .padding(.top, 2)
+                }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+struct WatchLaterToggle: View {
+    let videoId: String
+    @Environment(YouTubeService.self) private var yt
+    @State private var isWorking = false
+
+    var body: some View {
+        let saved = yt.isInWatchLater(videoId)
+        Button {
+            guard !isWorking else { return }
+            Task {
+                isWorking = true
+                defer { isWorking = false }
+                if saved {
+                    try? await yt.removeFromWatchLater(videoId: videoId)
+                } else {
+                    try? await yt.addToWatchLater(videoId: videoId)
+                }
+            }
+        } label: {
+            Image(systemName: saved ? "clock.badge.checkmark.fill" : "clock.badge.plus")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(saved ? Color.accentColor : Color.secondary)
+                .font(.system(size: 15))
+                .opacity(isWorking ? 0.4 : 1)
+                .contentTransition(.symbolEffect(.replace))
+        }
+        .buttonStyle(.borderless)
+        .disabled(isWorking)
+        .help(saved ? "Remove from Watch Later" : "Save to Watch Later")
     }
 }
 

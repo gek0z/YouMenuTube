@@ -18,7 +18,14 @@ final class YouTubeService {
     private(set) var isSignedIn: Bool = false
     var lastError: String?
 
+    /// Video IDs known to be in the user's Watch Later. Populated lazily on
+    /// sign-in (first page only — covers the most-recent items) and updated
+    /// optimistically on add/remove. Reads are local; only the toggle action
+    /// itself hits the network.
+    private(set) var watchLaterIds: Set<String> = []
+
     @ObservationIgnored let model: YouTubeModel
+    @ObservationIgnored private var watchLaterRefreshTask: Task<Void, Never>?
     private let cookiesKey = "youtube.cookies.v1"
 
     init() {
@@ -42,6 +49,11 @@ final class YouTubeService {
         model.cookies = cookies
         model.alwaysUseCookies = !cookies.isEmpty
         isSignedIn = !cookies.isEmpty
+        if isSignedIn {
+            refreshWatchLaterIds()
+        } else {
+            watchLaterIds = []
+        }
     }
 
     func signOut() {
@@ -49,6 +61,8 @@ final class YouTubeService {
         model.cookies = ""
         model.alwaysUseCookies = false
         isSignedIn = false
+        watchLaterRefreshTask?.cancel()
+        watchLaterIds = []
 
         let store = WKWebsiteDataStore.default()
         let types: Set<String> = [
@@ -169,6 +183,61 @@ final class YouTubeService {
         return resp.results.map(Self.entry(from:)).uniqued(by: \.id)
     }
 
+    // MARK: - Watch Later
+
+    func isInWatchLater(_ videoId: String) -> Bool {
+        watchLaterIds.contains(videoId)
+    }
+
+    func addToWatchLater(videoId: String) async throws {
+        try ensureSignedIn()
+        watchLaterIds.insert(videoId)
+        do {
+            let resp = try await AddVideoToPlaylistResponse.sendThrowingRequest(
+                youtubeModel: model,
+                data: [.browseId: "WL", .movingVideoId: videoId]
+            )
+            if resp.isDisconnected { throw YTServiceError.disconnected }
+            guard resp.success else { throw YTServiceError.actionFailed }
+        } catch {
+            watchLaterIds.remove(videoId)
+            throw error
+        }
+    }
+
+    func removeFromWatchLater(videoId: String) async throws {
+        try ensureSignedIn()
+        watchLaterIds.remove(videoId)
+        do {
+            let resp = try await RemoveVideoByIdFromPlaylistResponse.sendThrowingRequest(
+                youtubeModel: model,
+                data: [.browseId: "WL", .movingVideoId: videoId]
+            )
+            if resp.isDisconnected { throw YTServiceError.disconnected }
+            guard resp.success else { throw YTServiceError.actionFailed }
+        } catch {
+            watchLaterIds.insert(videoId)
+            throw error
+        }
+    }
+
+    /// Reload the Watch Later membership cache. Only fetches the first page —
+    /// far-back items won't show as "saved" until the user toggles them, but
+    /// the optimistic local cache keeps recent toggles accurate.
+    func refreshWatchLaterIds() {
+        watchLaterRefreshTask?.cancel()
+        watchLaterRefreshTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let entries = try await self.playlistItems(playlistId: BuiltInPlaylist.watchLater)
+                if Task.isCancelled { return }
+                self.watchLaterIds = Set(entries.map(\.id))
+            } catch {
+                log.error("watch-later cache refresh failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
     // MARK: - Search
 
     func search(_ query: String) async throws -> [VideoEntry] {
@@ -219,12 +288,15 @@ final class YouTubeService {
 enum YTServiceError: LocalizedError {
     case notSignedIn
     case disconnected
+    case actionFailed
     var errorDescription: String? {
         switch self {
         case .notSignedIn: return "Sign in to YouTube first."
         case .disconnected:
             return
                 "YouTube rejected the session. Sign out and sign in again — make sure you reach youtube.com logged-in (not just accounts.google.com)."
+        case .actionFailed:
+            return "YouTube rejected the action."
         }
     }
 }
