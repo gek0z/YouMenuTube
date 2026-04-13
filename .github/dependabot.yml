@@ -1,0 +1,53 @@
+version: 2
+
+# Monthly dependency check across both ecosystems we use:
+#   • Swift Package Manager (YouTubeKit, currently the only SPM dep)
+#   • GitHub Actions (workflows under .github/workflows)
+#
+# Updates are grouped by semver bump type so every Dependabot PR is one of
+# four flavours, and that flavour is visible in the PR title via the
+# commit-message prefix:
+#
+#   deps(swift): bump the swift-minor-patch group with N updates
+#   deps(swift): bump the swift-major group with N updates
+#   ci(deps):    bump the actions-minor-patch group with N updates
+#   ci(deps):    bump the actions-major group with N updates
+
+updates:
+  - package-ecosystem: "swift"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(swift)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "swift"
+    reviewers:
+      - "gek0z"
+    groups:
+      swift-minor-patch:
+        update-types: ["minor", "patch"]
+      swift-major:
+        update-types: ["major"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    reviewers:
+      - "gek0z"
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]
+      actions-major:
+        update-types: ["major"]
