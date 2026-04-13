@@ -56,10 +56,10 @@ struct WatchLaterToggle: View {
                 }
             }
         } label: {
-            Image(systemName: saved ? "clock.badge.checkmark.fill" : "clock.badge.plus")
+            Image(systemName: saved ? "clock.badge.checkmark.fill" : "clock")
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(saved ? Color.accentColor : Color.secondary)
-                .font(.system(size: 15))
+                .font(.system(size: 16))
                 .opacity(isWorking ? 0.4 : 1)
                 .contentTransition(.symbolEffect(.replace))
         }
