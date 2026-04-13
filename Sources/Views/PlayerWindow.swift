@@ -19,16 +19,18 @@ struct PlayerWindow: View {
             if isHovering {
                 ZStack(alignment: .leading) {
                     DragHandle()
-                    Button {
-                        player.stop()
-                        dismissWindow(id: WindowID.player)
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 16))
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, .black.opacity(0.7))
+                    HStack(spacing: 6) {
+                        overlayButton(system: "xmark.circle.fill", help: "Close") {
+                            player.stop()
+                            dismissWindow(id: WindowID.player)
+                        }
+                        overlayButton(
+                            system: floatOnTop ? "pin.circle.fill" : "pin.circle",
+                            help: floatOnTop ? "Stop floating on top" : "Float on top"
+                        ) {
+                            floatOnTop.toggle()
+                        }
                     }
-                    .buttonStyle(.plain)
                     .padding(.leading, 8)
                 }
                 .frame(height: 28)
@@ -45,8 +47,41 @@ struct PlayerWindow: View {
         .animation(.easeInOut(duration: 0.12), value: isHovering)
         .onHover { isHovering = $0 }
         .background(WindowConfigurator(floatOnTop: floatOnTop))
-        .onAppear { dock.present(WindowID.player) }
+        .onAppear {
+            dock.present(WindowID.player)
+            bringToFront()
+        }
+        .onChange(of: player.videoId) { _, newId in
+            // Playing a fresh video while the window is already open
+            // should still pull focus — otherwise the menubar click
+            // swaps the video silently in the background.
+            if newId != nil { bringToFront() }
+        }
         .onDisappear { dock.dismiss(WindowID.player) }
+    }
+
+    private func bringToFront() {
+        NSApp.activate(ignoringOtherApps: true)
+        // Schedule the makeKey one runloop later: on the first open the
+        // NSWindow hasn't been fully wired up when onAppear fires.
+        Task { @MainActor in
+            NSApp.windows
+                .first { $0.title == "Now Playing" }?
+                .makeKeyAndOrderFront(nil)
+        }
+    }
+
+    private func overlayButton(
+        system: String, help: String, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: system)
+                .font(.system(size: 16))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(.white, .black.opacity(0.7))
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 
     @ViewBuilder
@@ -96,6 +131,11 @@ private struct WindowConfigurator: NSViewRepresentable {
     private func apply(to window: NSWindow?, floatOnTop: Bool) {
         guard let window else { return }
         window.level = floatOnTop ? .floating : .normal
+        // Just raising level isn't enough once the window has been ordered
+        // behind a normal-level window from another app: AppKit leaves it
+        // where it is and the user sees no change. Ask for a fresh stacking
+        // pass so the newly-floating window actually comes back to the top.
+        if floatOnTop { window.orderFrontRegardless() }
         window.isMovableByWindowBackground = true
         // .plain windows are .borderless, which means they can't become key
         // (Cmd+W won't fire) and have no resize handles. Inserting .resizable

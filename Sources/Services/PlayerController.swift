@@ -11,8 +11,10 @@ final class PlayerController {
     func play(videoId: String, title: String) {
         self.videoId = videoId
         self.title = title
-        NSApp.activate(ignoringOtherApps: true)
         Self.closeMenuBarPopover()
+        // Activation happens in PlayerWindow.onAppear / onChange — calling
+        // NSApp.activate here is a no-op while the app is still .accessory
+        // (the policy flip only lands once the window has appeared).
     }
 
     func stop() {
