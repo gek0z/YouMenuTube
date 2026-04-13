@@ -39,6 +39,10 @@ targets:
         CFBundleDisplayName: YouMenuTube
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
+        # Stamped at build time by the postBuildScript below. Default kept
+        # blank so a brand-new clone shows a valid bundle even before the
+        # script has ever run.
+        GitCommit: ""
         LSMinimumSystemVersion: "15.0"
         LSUIElement: true
         NSAppTransportSecurity:
@@ -59,6 +63,22 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.youmenutube.app
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: NO
+    postBuildScripts:
+      - name: Stamp git commit into Info.plist
+        # Runs after Resources are processed but before code signing, so the
+        # SHA we write ends up signed into the bundle. `basedOnDependencyAnalysis`
+        # is off because the input (HEAD) doesn't map to a path Xcode tracks.
+        basedOnDependencyAnalysis: false
+        script: |
+          set -eu
+          INFO_PLIST="${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
+          [ -f "$INFO_PLIST" ] || exit 0
+          COMMIT=$(git -C "${SRCROOT}" rev-parse --short HEAD 2>/dev/null || echo "")
+          DIRTY=""
+          if [ -n "$COMMIT" ] && ! git -C "${SRCROOT}" diff --quiet 2>/dev/null; then
+            DIRTY="-dirty"
+          fi
+          /usr/libexec/PlistBuddy -c "Set :GitCommit ${COMMIT}${DIRTY}" "$INFO_PLIST"
 
   YouMenuTubeTests:
     type: bundle.unit-test

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(YouTubeService.self) private var yt
+    @Environment(UpdateChecker.self) private var updates
     @AppStorage("player.autoplay") private var autoplay: Bool = true
     @AppStorage("player.floatOnTop") private var floatOnTop: Bool = true
     @AppStorage("subscriptions.hideShorts") private var hideShorts: Bool = true
@@ -72,8 +73,8 @@ struct SettingsView: View {
             }
 
             Section("About") {
-                LabeledContent(
-                    "Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
+                LabeledContent("Version", value: versionDisplay)
+                updateRow
             }
 
             if let err = yt.lastError {
@@ -91,6 +92,47 @@ struct SettingsView: View {
             loadingPlaylists = true
             defer { loadingPlaylists = false }
             do { playlists = try await yt.myPlaylists() } catch { /* picker just stays empty */  }
+        }
+        .task { await updates.check() }
+    }
+
+    private var versionDisplay: String {
+        let info = Bundle.main.infoDictionary ?? [:]
+        let short = info["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info["CFBundleVersion"] as? String ?? "?"
+        let commit = (info["GitCommit"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        if let commit, commit != build {
+            return "\(short) (\(build) · \(commit))"
+        }
+        return "\(short) (\(build))"
+    }
+
+    @ViewBuilder
+    private var updateRow: some View {
+        switch updates.state {
+        case .idle, .checking:
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.small)
+                Text("Checking for updates…").foregroundStyle(.secondary)
+            }
+            .font(.caption)
+        case .upToDate:
+            Label("You're on the latest release.", systemImage: "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .symbolRenderingMode(.hierarchical)
+        case .available(let version, let url):
+            Link(destination: url) {
+                Label("Update available: \(version)", systemImage: "arrow.down.circle.fill")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.tint)
+            }
+            .font(.caption)
+        case .failed(let why):
+            Label("Update check failed: \(why)", systemImage: "exclamationmark.triangle.fill")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .symbolRenderingMode(.hierarchical)
         }
     }
 

@@ -5,6 +5,7 @@ struct YouMenuTubeApp: App {
     @State private var yt = YouTubeService()
     @State private var player = PlayerController()
     @State private var refresh = RefreshTrigger()
+    @State private var updates = UpdateChecker()
 
     var body: some Scene {
         MenuBarExtra {
@@ -12,6 +13,7 @@ struct YouMenuTubeApp: App {
                 .environment(yt)
                 .environment(player)
                 .environment(refresh)
+                .environment(updates)
                 .frame(width: 420, height: 560)
         } label: {
             Image(systemName: "play.rectangle.fill")

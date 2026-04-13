@@ -15,14 +15,14 @@ struct VideoRow: View {
                         .font(.system(size: 12, weight: .semibold))
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
-                    if let ch = entry.channelTitle {
-                        Text(ch).font(.caption2).foregroundStyle(.secondary)
-                    }
-                    if let t = entry.timePosted {
-                        Text(t).font(.caption2).foregroundStyle(.tertiary)
-                    }
+                    Text(entry.channelTitle ?? " ")
+                        .font(.caption2).foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Text(entry.timePosted ?? " ")
+                        .font(.caption2).foregroundStyle(.tertiary)
+                        .lineLimit(1)
                 }
-                Spacer(minLength: 0)
+                .frame(maxWidth: .infinity, minHeight: 68, alignment: .topLeading)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
@@ -46,5 +46,8 @@ struct ThumbnailView: View {
                 Color.gray.opacity(0.15)
             }
         }
+        // Disable the implicit cross-fade — its layout pass jitters LazyVStack
+        // when many rows finish loading in quick succession during fast scrolls.
+        .transaction { $0.animation = nil }
     }
 }
