@@ -132,7 +132,7 @@ final class YouTubeService {
         let resp = try await HomeScreenResponse.sendThrowingRequest(
             youtubeModel: model, data: [:], useCookies: true
         )
-        return resp.results.map(Self.entry(from:))
+        return resp.results.map(Self.entry(from:)).uniqued(by: \.id)
     }
 
     // MARK: - Subscriptions feed
@@ -143,7 +143,7 @@ final class YouTubeService {
             youtubeModel: model, data: [:], useCookies: true
         )
         if resp.isDisconnected { throw YTServiceError.disconnected }
-        return resp.results.map(Self.entry(from:))
+        return resp.results.map(Self.entry(from:)).uniqued(by: \.id)
     }
 
     // MARK: - My playlists
@@ -154,7 +154,7 @@ final class YouTubeService {
             youtubeModel: model, data: [:], useCookies: true
         )
         if resp.isDisconnected { throw YTServiceError.disconnected }
-        return resp.results.map(Self.entry(from:))
+        return resp.results.map(Self.entry(from:)).uniqued(by: \.id)
     }
 
     // MARK: - Playlist items
@@ -166,7 +166,7 @@ final class YouTubeService {
         let resp = try await PlaylistInfosResponse.sendThrowingRequest(
             youtubeModel: model, data: [.browseId: id], useCookies: true
         )
-        return resp.results.map(Self.entry(from:))
+        return resp.results.map(Self.entry(from:)).uniqued(by: \.id)
     }
 
     // MARK: - Search
@@ -175,10 +175,11 @@ final class YouTubeService {
         let resp = try await SearchResponse.sendThrowingRequest(
             youtubeModel: model, data: [.query: query]
         )
-        return resp.results.compactMap { item -> VideoEntry? in
-            guard let v = item as? YTVideo else { return nil }
-            return Self.entry(from: v)
-        }
+        return
+            resp.results
+            .compactMap { $0 as? YTVideo }
+            .map(Self.entry(from:))
+            .uniqued(by: \.id)
     }
 
     // MARK: - Helpers
