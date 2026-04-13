@@ -1,31 +1,24 @@
 name: Release
 
-# Two release modes, same workflow:
+# Build a DMG and publish it to a tagged GitHub Release.
 #
-#   push to main   → rolling pre-release tagged `nightly`, version
-#                    "main-<short_sha>". Auto-published, replaces the previous
-#                    nightly DMG. Covers PR merges into main.
-#   push of v* tag → versioned draft release tagged with the tag (e.g. v0.1.0).
-#                    Maintainer publishes manually after a sanity check.
-#   manual dispatch → release for an existing tag (useful for re-runs).
+# Triggers:
+#   • push of a v* tag        → versioned, published release with the DMG
+#   • workflow_dispatch (tag) → re-run the build for an existing tag
+#
+# Tagging itself is automated: every Sources-bearing commit on main is
+# auto-tagged by .github/workflows/auto-tag.yml, which pushes the new tag
+# and dispatches this workflow. For larger bumps use Bump & Release.
+#
+# `https://github.com/<owner>/<repo>/releases/latest` always redirects to
+# the newest published release, which is the stable URL the in-app
+# UpdateChecker uses and what should appear in the Install section of the
+# README.
 
 on:
   push:
-    branches: [main]
     tags:
       - "v*"
-    # Skip pushes that can't change the produced binary. Use workflow_dispatch
-    # if you ever need to force a rebuild against an unchanged source tree.
-    paths-ignore:
-      - "**/*.md"
-      - "LICENSE"
-      - "NOTICE"
-      - ".gitignore"
-      - ".github/dependabot.yml"
-      - ".github/ISSUE_TEMPLATE/**"
-      - ".github/PULL_REQUEST_TEMPLATE.md"
-      - ".githooks/**"
-      - ".swift-format"
   workflow_dispatch:
     inputs:
       tag:
@@ -36,11 +29,8 @@ permissions:
   contents: write
 
 concurrency:
-  # Group on the actual release target (tag input or current ref) so that
-  # parallel runs for different releases don't supersede each other in the
-  # pending queue. Without this, a workflow_dispatch for v0.1.1 and a
-  # nightly push to main share the same group and the dispatch gets
-  # cancelled when a newer push arrives.
+  # One in-flight run per release target. Different tags are independent
+  # so simultaneous releases don't supersede each other in the queue.
   group: release-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
 
@@ -57,49 +47,18 @@ jobs:
       - name: Plan release
         id: plan
         run: |
-          if [[ -n "${{ inputs.tag }}" ]]; then
-            REF="${{ inputs.tag }}"
-            VERSION="${REF#v}"
-            TARGET_TAG="$REF"
-            NAME="$REF"
-            PRERELEASE=false
-            DRAFT=true
-            GENERATE_NOTES=true
-            # Tagged releases keep version in the filename so each tag has
-            # its own DMG asset on GitHub Releases.
-            DMG_NAME="YouMenuTube-${VERSION}.dmg"
-          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            REF="$GITHUB_REF_NAME"
-            VERSION="${REF#v}"
-            TARGET_TAG="$REF"
-            NAME="$REF"
-            PRERELEASE=false
-            DRAFT=true
-            GENERATE_NOTES=true
-            DMG_NAME="YouMenuTube-${VERSION}.dmg"
-          else
-            SHORT="$(git rev-parse --short HEAD)"
-            VERSION="main-$SHORT"
-            TARGET_TAG="nightly"
-            NAME="Latest main build ($SHORT)"
-            PRERELEASE=true
-            DRAFT=false
-            GENERATE_NOTES=false
-            # Rolling channel uses a fixed filename so the URL is stable
-            # (…/releases/download/nightly/YouMenuTube-nightly.dmg) and
-            # softprops/action-gh-release replaces the prior asset.
-            DMG_NAME="YouMenuTube-nightly.dmg"
+          REF="${{ inputs.tag || github.ref_name }}"
+          if [[ "$REF" != v* ]]; then
+            echo "::error::Expected a v* tag, got '$REF'."
+            exit 1
           fi
+          VERSION="${REF#v}"
           {
+            echo "tag=$REF"
             echo "version=$VERSION"
-            echo "tag=$TARGET_TAG"
-            echo "name=$NAME"
-            echo "prerelease=$PRERELEASE"
-            echo "draft=$DRAFT"
-            echo "generate_notes=$GENERATE_NOTES"
-            echo "dmg_name=$DMG_NAME"
+            echo "dmg_name=YouMenuTube-${VERSION}.dmg"
           } >> "$GITHUB_OUTPUT"
-          echo "Plan → tag=$TARGET_TAG version=$VERSION dmg=$DMG_NAME prerelease=$PRERELEASE draft=$DRAFT"
+          echo "Plan → tag=$REF version=$VERSION"
 
       - name: Show toolchain
         run: |
@@ -164,36 +123,14 @@ jobs:
             "${{ steps.app.outputs.path }}"
           echo "Built $DMG ($(du -h "$DMG" | cut -f1))"
 
-      - name: Clean up old assets on the nightly release
-        if: steps.plan.outputs.tag == 'nightly'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # Remove any leftover SHA-named DMGs from before the rolling-filename
-        # change so the nightly release only carries the latest build.
-        run: |
-          KEEP="${{ steps.plan.outputs.dmg_name }}"
-          gh release view nightly --repo "${{ github.repository }}" --json assets --jq '.assets[].name' 2>/dev/null \
-            | while read -r asset; do
-                if [[ "$asset" != "$KEEP" && "$asset" == YouMenuTube-*.dmg ]]; then
-                  echo "Deleting stale asset: $asset"
-                  gh release delete-asset nightly "$asset" --repo "${{ github.repository }}" --yes || true
-                fi
-              done
-
-      - name: Move rolling `nightly` tag to current commit
-        if: steps.plan.outputs.tag == 'nightly'
-        run: |
-          git tag -f nightly
-          git push --force origin refs/tags/nightly
-
       - name: Publish release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.plan.outputs.tag }}
-          name: ${{ steps.plan.outputs.name }}
-          draft: ${{ steps.plan.outputs.draft }}
-          prerelease: ${{ steps.plan.outputs.prerelease }}
-          generate_release_notes: ${{ steps.plan.outputs.generate_notes }}
+          name: ${{ steps.plan.outputs.tag }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
           files: YouMenuTube-*.dmg
           body: |
             ## Install
@@ -205,7 +142,5 @@ jobs:
             > - System Settings → Privacy & Security → "YouMenuTube was blocked …" → **Open Anyway**.
             >
             > Subsequent launches work normally.
-
-            ${{ steps.plan.outputs.tag == 'nightly' && '⚠️ This is a rolling **nightly** build from `main` — may be unstable. For tagged releases, see the Releases page sidebar.' || '' }}
 
             See the [README](https://github.com/${{ github.repository }}#install) for full install / disclaimer / privacy notes.

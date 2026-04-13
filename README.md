@@ -39,12 +39,9 @@ inside the app and you're done.
 
 ## Install
 
-> Pre-built `.dmg` releases are coming. Until then, build from source —
-> see [Setup](#setup) below.
-
-When the first release is published:
-
-1. Download `YouMenuTube-<version>.dmg` from the [Releases page](https://github.com/gek0z/YouMenuTube/releases).
+1. Grab the latest DMG from the [latest release](https://github.com/gek0z/YouMenuTube/releases/latest)
+   (that link permanently redirects to the newest published version, so you
+   can bookmark it).
 2. Open the DMG and drag `YouMenuTube.app` into `/Applications`.
 3. **First launch** — because the build is ad-hoc signed (no paid Apple
    Developer ID), Gatekeeper will refuse it on a normal double-click. Either:
@@ -52,6 +49,9 @@ When the first release is published:
    - System Settings → Privacy & Security → "YouMenuTube was blocked …" →
      **Open Anyway**.
 4. Subsequent launches work normally.
+
+The app checks `/releases/latest` once per launch (in Settings → About) and
+shows an "Update available" link if a newer version is published.
 
 ## Project layout
 
