@@ -8,6 +8,7 @@ struct SearchView: View {
     @State private var results: [VideoEntry] = []
     @State private var isLoading = false
     @State private var error: String?
+    @State private var lastCompletedQuery: String?
     @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
@@ -17,10 +18,16 @@ struct SearchView: View {
                 TextField("Search YouTube", text: $query)
                     .textFieldStyle(.plain)
                     .onSubmit { triggerSearch(immediate: true) }
+                if isLoading {
+                    ProgressView().controlSize(.small)
+                }
                 if !query.isEmpty {
                     Button {
+                        searchTask?.cancel()
                         query = ""
                         results = []
+                        lastCompletedQuery = nil
+                        isLoading = false
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                     }
@@ -32,26 +39,32 @@ struct SearchView: View {
             .padding(EdgeInsets(top: 4, leading: 10, bottom: 6, trailing: 10))
             .onChange(of: query) { _, _ in triggerSearch(immediate: false) }
 
-            if let error {
-                ErrorInline(message: error) { triggerSearch(immediate: true) }
-            } else if isLoading {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if query.isEmpty {
-                ContentUnavailableView(
-                    "Search YouTube",
-                    systemImage: "magnifyingglass",
-                    description: Text("Type to find videos.")
-                )
-                .padding(.top, 24)
-                Spacer(minLength: 0)
-            } else if results.isEmpty {
-                ContentUnavailableView.search(text: query)
-            } else {
-                VideoList(entries: results) { entry in
-                    player.play(videoId: entry.id, title: entry.title)
-                    openWindow(id: WindowID.player)
-                }
+            content
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        if let error {
+            ErrorInline(message: error) { triggerSearch(immediate: true) }
+        } else if !results.isEmpty {
+            VideoList(entries: results) { entry in
+                player.play(videoId: entry.id, title: entry.title)
+                openWindow(id: WindowID.player)
             }
+        } else if trimmed.isEmpty {
+            ContentUnavailableView(
+                "Search YouTube",
+                systemImage: "magnifyingglass",
+                description: Text("Type to find videos.")
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if lastCompletedQuery == trimmed && !isLoading {
+            ContentUnavailableView.search(text: trimmed)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -60,6 +73,8 @@ struct SearchView: View {
         let q = query.trimmingCharacters(in: .whitespaces)
         guard !q.isEmpty else {
             results = []
+            lastCompletedQuery = nil
+            isLoading = false
             return
         }
         searchTask = Task {
@@ -75,7 +90,12 @@ struct SearchView: View {
         isLoading = true
         error = nil
         defer { isLoading = false }
-        do { results = try await yt.search(q) } catch {
+        do {
+            let r = try await yt.search(q)
+            if Task.isCancelled { return }
+            results = r
+            lastCompletedQuery = q
+        } catch {
             if (error as? CancellationError) == nil { self.error = error.localizedDescription }
         }
     }
