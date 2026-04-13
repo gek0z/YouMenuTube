@@ -44,7 +44,7 @@ jobs:
     name: Build & publish DMG
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
@@ -164,7 +164,7 @@ jobs:
           git push --force origin refs/tags/nightly
 
       - name: Publish release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.plan.outputs.tag }}
           name: ${{ steps.plan.outputs.name }}
