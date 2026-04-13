@@ -2,12 +2,14 @@
 
 A macOS menu-bar app that puts YouTube in your menubar:
 
-- **Home** — YouTube's main recommendations feed
+- **Home** (default tab) — YouTube's main recommendations feed
 - Latest videos from your **Subscriptions**
 - Browse your **Playlists** (including **Watch Later** and **Liked Videos**)
 - **Search** YouTube
-- **Settings** for default playlist, autoplay, floating-window behaviour, hide-Shorts
+- **Settings** for default playlist, autoplay, floating-window behaviour,
+  hide-Shorts (per feed), and version / update-check info
 - Click any video to play it in a chrome-less, 16:9 floating mini player
+- In-app **update check** against the latest GitHub release
 
 Built with SwiftUI `MenuBarExtra`, targeting **macOS 15 Sequoia or later**.
 Powered by [YouTubeKit](https://github.com/b5i/YouTubeKit) — talks to
@@ -59,6 +61,15 @@ shows an "Update available" link if a newer version is published.
 YouMenuTube/
 ├── bootstrap.sh                # One-shot setup: prereqs + project generation
 ├── project.yml                 # XcodeGen spec → generates YouMenuTube.xcodeproj
+├── .swift-format               # swift-format config (line length 120, 4-space)
+├── .githooks/pre-commit        # swift-format lint on staged Swift files
+├── .github/
+│   ├── dependabot.yml          # Monthly grouped updates for SPM + Actions
+│   └── workflows/
+│       ├── ci.yml              # Lint + build + test (PR-label gated)
+│       ├── release.yml         # Builds the DMG on v* tag push
+│       ├── auto-tag.yml        # Patch-bumps tag on Sources-bearing pushes
+│       └── bump-release.yml    # Manual minor / major bump
 ├── Sources/
 │   ├── Info.plist
 │   ├── YouMenuTube.entitlements
@@ -68,17 +79,26 @@ YouMenuTube/
 │   ├── Services/
 │   │   ├── YouTubeService.swift     # one client for everything
 │   │   ├── PlayerController.swift
+│   │   ├── RefreshTrigger.swift     # shared "user pressed refresh" signal
+│   │   ├── UpdateChecker.swift      # polls /releases/latest
 │   │   └── Keychain.swift
 │   ├── Models/
 │   │   └── YouTubeModels.swift      # VideoEntry, PlaylistEntry
 │   └── Views/
 │       ├── VideoRow.swift
+│       ├── HomeFeedView.swift
 │       ├── SubscriptionsFeedView.swift
 │       ├── PlaylistsView.swift      # API + WL/LL synthetic rows
 │       ├── SearchView.swift
 │       ├── SettingsView.swift
 │       ├── PlayerWindow.swift
 │       └── YouTubeSignInSheet.swift
+├── Tests/
+│   └── SmokeTests.swift             # Swift Testing target
+├── LICENSE                          # Apache 2.0
+├── NOTICE                           # Third-party attribution
+├── SECURITY.md
+├── CONTRIBUTING.md
 └── README.md
 ```
 
@@ -99,8 +119,7 @@ opens Xcode. In Xcode:
    the menu bar.
 4. Click the icon → **Sign in** → log in to youtube.com inside the sheet. As
    soon as the page lands back on `youtube.com`, the sheet auto-captures the
-   session cookies (stored in the macOS Keychain) and closes itself. You can
-   also click **Done** manually.
+   session cookies (stored in the macOS Keychain) and closes itself.
 
 `bootstrap.sh` flags: `--no-open`, `--clean`.
 
@@ -108,6 +127,7 @@ opens Xcode. In Xcode:
 
 | Feature             | Endpoint (YouTubeKit / InnerTube)         |
 |---------------------|-------------------------------------------|
+| Home recommendations| `HomeScreenResponse`                      |
 | Subscriptions feed  | `AccountSubscriptionsFeedResponse`        |
 | Your playlists      | `AccountPlaylistsResponse`                |
 | Playlist contents   | `PlaylistInfosResponse` (browseId `VL…`)  |
@@ -149,16 +169,41 @@ default the window floats above other apps; toggle this in Settings.
 | `swift-format` | Format & lint Swift sources | `xcrun swift-format format -i -r --configuration .swift-format Sources Tests` (write) / `... lint --strict ...` (check) |
 | Swift Testing | Unit tests under `Tests/` | `xcodebuild ... test` (or ⌘U in Xcode) |
 | Pre-commit hook | Runs swift-format lint on staged files | Auto-installed by `bootstrap.sh` (`git config core.hooksPath .githooks`); see `.githooks/pre-commit` |
-| GitHub Actions | CI — format, build, test on `macos-15`. Opt-in only: add the `run-ci` label to a PR (or use the "Run workflow" button) so macOS minutes aren't burned on every push | `.github/workflows/ci.yml` |
+| GitHub Actions CI | Lint + build + test on `macos-15`. Opt-in only: add the `run-ci` label to a PR (or use the "Run workflow" button) so macOS minutes aren't burned on every push | `.github/workflows/ci.yml` |
+| Dependabot | Monthly grouped updates for SPM packages and GitHub Actions | `.github/dependabot.yml` |
 
 Configuration lives in [`.swift-format`](.swift-format) (line length 120, 4-space indent).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for PR conventions and detail.
+
+### Releases
+
+Releases are fully automated. The pipeline:
+
+1. **Auto-tag** (`.github/workflows/auto-tag.yml`) — every push to `main` that
+   touches `Sources/`, `Tests/`, `project.yml`, or `bootstrap.sh` gets a patch
+   bump (e.g. `v0.1.5 → v0.1.6`). Docs / dependabot / hook / format-config
+   pushes don't trigger it.
+2. **Release** (`.github/workflows/release.yml`) — fires on `v*` tag pushes,
+   builds the `.app` (Release config), ad-hoc signs it, packages it as a
+   `.dmg` with `create-dmg`, and publishes a GitHub Release.
+3. **Bump & Release** (`.github/workflows/bump-release.yml`) — manual entry
+   point (Actions tab → Run workflow) for `minor` / `major` bumps. Patches
+   are handled by Auto-tag.
+
+Versioning: `CFBundleShortVersionString` is derived from `git describe`
+(post-build script in `project.yml`) — `0.1.0` on a tag, `0.1.0+N` past it.
+`CFBundleVersion` is `git rev-list --count HEAD` (monotonic). `GitCommit`
+holds the short SHA (with a `-dirty` suffix when the working tree has
+uncommitted changes). Settings → About displays them as
+`0.1.0 (17 · 19d5410)`.
 
 ## Troubleshooting
 
 - **Sheet doesn't auto-close after you sign in** — you haven't fully landed
-  on `youtube.com` yet. Cookie-consent and "choose account" interstitials
-  count; finish those until the status bar URL shows `www.youtube.com`,
-  then click **Done**.
+  on `www.youtube.com` yet. Cookie-consent and "choose account" interstitials
+  count; finish those until the status bar URL in the sheet reads
+  `www.youtube.com`, at which point the sheet auto-captures and closes.
+  Manual **Done** is still available as a fallback.
 - **Google shows "This browser or app may not be secure"** — stale visitor
   cookies are tripping Google's detection. Sign out from Settings (which
   wipes the WKWebView store), reopen the sign-in sheet, try again.
@@ -177,9 +222,13 @@ Configuration lives in [`.swift-format`](.swift-format) (line length 120, 4-spac
 ## Privacy
 
 YouMenuTube runs entirely on your Mac. There is no telemetry, no analytics,
-no crash reporting back-channel, no remote config. The only network traffic
-the app makes is to `youtube.com` / `accounts.google.com` (during sign-in)
-and to YouTube's own InnerTube endpoints (for feeds, playlists, search).
+no crash reporting back-channel, no remote config. The app reaches the
+network only for:
+
+- `youtube.com` / `accounts.google.com` during sign-in
+- YouTube's own InnerTube endpoints for feeds, playlists, and search
+- `api.github.com/repos/gek0z/YouMenuTube/releases/latest` once per launch
+  to render the update-available link in Settings → About
 
 Your YouTube session cookies — captured from the sign-in `WKWebView` and
 filtered to `*.youtube.com` only — are stored in the macOS Keychain under
