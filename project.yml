@@ -64,18 +64,45 @@ targets:
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: NO
     postBuildScripts:
-      - name: Stamp git commit into Info.plist
+      - name: Stamp version + build number + git commit into Info.plist
         # Runs after Resources are processed but before code signing, so the
-        # SHA we write ends up signed into the bundle. `basedOnDependencyAnalysis`
-        # is off because the input (HEAD) doesn't map to a path Xcode tracks.
+        # values we write end up signed into the bundle. `basedOnDependencyAnalysis`
+        # is off because HEAD doesn't map to a path Xcode tracks.
+        #
+        # Final values:
+        #   CFBundleShortVersionString  ← derived from `git describe --tags`
+        #     · on a v* tag       → "0.2.0"
+        #     · N commits past it → "0.2.0+N"
+        #     · no tags yet       → leave the project.yml fallback in place
+        #   CFBundleVersion             ← `git rev-list --count HEAD` (monotonic)
+        #   GitCommit                   ← short SHA (with -dirty when applicable)
         basedOnDependencyAnalysis: false
         script: |
           set -eu
           INFO_PLIST="${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
           [ -f "$INFO_PLIST" ] || exit 0
-          COMMIT=$(git -C "${SRCROOT}" rev-parse --short HEAD 2>/dev/null || echo "")
+          cd "${SRCROOT}"
+
+          # Version
+          if SHORT=$(git describe --exact-match --tags HEAD 2>/dev/null); then
+            SHORT="${SHORT#v}"
+          elif DESC=$(git describe --tags --match 'v*' 2>/dev/null); then
+            BASE=$(echo "$DESC" | sed -E 's/^v//; s/-[0-9]+-g[0-9a-f]+$//')
+            AHEAD=$(echo "$DESC" | sed -nE 's/.*-([0-9]+)-g[0-9a-f]+$/\1/p')
+            SHORT="${BASE}+${AHEAD}"
+          else
+            SHORT=""   # no tags — keep whatever project.yml put in there
+          fi
+          [ -n "$SHORT" ] && /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $SHORT" "$INFO_PLIST"
+
+          # Monotonic build number
+          BUILD=$(git rev-list --count HEAD 2>/dev/null || echo "1")
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$INFO_PLIST"
+
+          # Short SHA (with -dirty marker for uncommitted local changes)
+          COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "")
           DIRTY=""
-          if [ -n "$COMMIT" ] && ! git -C "${SRCROOT}" diff --quiet 2>/dev/null; then
+          if [ -n "$COMMIT" ] && ! git diff --quiet 2>/dev/null; then
             DIRTY="-dirty"
           fi
           /usr/libexec/PlistBuddy -c "Set :GitCommit ${COMMIT}${DIRTY}" "$INFO_PLIST"

@@ -107,13 +107,6 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate --quiet
 
-      - name: Stamp version into Info.plist
-        run: |
-          /usr/libexec/PlistBuddy \
-            -c "Set :CFBundleShortVersionString ${{ steps.plan.outputs.version }}" \
-            -c "Set :CFBundleVersion ${{ steps.plan.outputs.version }}" \
-            Sources/Info.plist
-
       - name: Resolve Swift packages
         run: |
           xcodebuild -resolvePackageDependencies \
