@@ -60,6 +60,9 @@ jobs:
             PRERELEASE=false
             DRAFT=true
             GENERATE_NOTES=true
+            # Tagged releases keep version in the filename so each tag has
+            # its own DMG asset on GitHub Releases.
+            DMG_NAME="YouMenuTube-${VERSION}.dmg"
           elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             REF="$GITHUB_REF_NAME"
             VERSION="${REF#v}"
@@ -68,6 +71,7 @@ jobs:
             PRERELEASE=false
             DRAFT=true
             GENERATE_NOTES=true
+            DMG_NAME="YouMenuTube-${VERSION}.dmg"
           else
             SHORT="$(git rev-parse --short HEAD)"
             VERSION="main-$SHORT"
@@ -76,6 +80,10 @@ jobs:
             PRERELEASE=true
             DRAFT=false
             GENERATE_NOTES=false
+            # Rolling channel uses a fixed filename so the URL is stable
+            # (…/releases/download/nightly/YouMenuTube-nightly.dmg) and
+            # softprops/action-gh-release replaces the prior asset.
+            DMG_NAME="YouMenuTube-nightly.dmg"
           fi
           {
             echo "version=$VERSION"
@@ -84,8 +92,9 @@ jobs:
             echo "prerelease=$PRERELEASE"
             echo "draft=$DRAFT"
             echo "generate_notes=$GENERATE_NOTES"
+            echo "dmg_name=$DMG_NAME"
           } >> "$GITHUB_OUTPUT"
-          echo "Plan → tag=$TARGET_TAG version=$VERSION prerelease=$PRERELEASE draft=$DRAFT"
+          echo "Plan → tag=$TARGET_TAG version=$VERSION dmg=$DMG_NAME prerelease=$PRERELEASE draft=$DRAFT"
 
       - name: Show toolchain
         run: |
@@ -144,7 +153,7 @@ jobs:
 
       - name: Package DMG
         run: |
-          DMG="YouMenuTube-${{ steps.plan.outputs.version }}.dmg"
+          DMG="${{ steps.plan.outputs.dmg_name }}"
           create-dmg \
             --volname "YouMenuTube ${{ steps.plan.outputs.version }}" \
             --window-size 540 380 \
@@ -156,6 +165,22 @@ jobs:
             "$DMG" \
             "${{ steps.app.outputs.path }}"
           echo "Built $DMG ($(du -h "$DMG" | cut -f1))"
+
+      - name: Clean up old assets on the nightly release
+        if: steps.plan.outputs.tag == 'nightly'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Remove any leftover SHA-named DMGs from before the rolling-filename
+        # change so the nightly release only carries the latest build.
+        run: |
+          KEEP="${{ steps.plan.outputs.dmg_name }}"
+          gh release view nightly --repo "${{ github.repository }}" --json assets --jq '.assets[].name' 2>/dev/null \
+            | while read -r asset; do
+                if [[ "$asset" != "$KEEP" && "$asset" == YouMenuTube-*.dmg ]]; then
+                  echo "Deleting stale asset: $asset"
+                  gh release delete-asset nightly "$asset" --repo "${{ github.repository }}" --yes || true
+                fi
+              done
 
       - name: Move rolling `nightly` tag to current commit
         if: steps.plan.outputs.tag == 'nightly'
