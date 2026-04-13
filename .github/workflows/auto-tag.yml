@@ -1,0 +1,95 @@
+name: Auto-tag
+
+# Push-time auto-bump. When a commit lands on main that actually changes
+# something user-facing (Sources, Tests, project.yml, bootstrap.sh, the
+# release/auto-tag workflows themselves), this fires, bumps the patch part
+# of the latest v* tag, and pushes the new tag. The existing Release
+# workflow then picks up the tag push and produces a draft release with
+# the DMG.
+#
+# For non-patch bumps (minor / major), use the manual "Bump & Release"
+# workflow instead. For docs-only / dependabot / hooks-only commits, the
+# paths filter below means this workflow doesn't even start — no tag, no
+# release, no inflation.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Sources/**"
+      - "Tests/**"
+      - "project.yml"
+      - "bootstrap.sh"
+      - ".github/workflows/release.yml"
+      - ".github/workflows/auto-tag.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-tag-main
+  cancel-in-progress: true
+
+jobs:
+  tag:
+    name: Compute & push patch tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Skip if HEAD already has a v* tag
+        # If the commit is already tagged (e.g. the Bump & Release workflow
+        # just put one here) there's nothing to do — and re-tagging would
+        # collide. Sets `skip=true` for downstream conditions.
+        id: skip
+        run: |
+          if git tag --points-at HEAD | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' >/dev/null; then
+            echo "skip=true"  >> "$GITHUB_OUTPUT"
+            echo "HEAD is already tagged: $(git tag --points-at HEAD | tr '\n' ' ')"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compute next patch version
+        if: steps.skip.outputs.skip == 'false'
+        id: next
+        run: |
+          LAST=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "v0.0.0")
+          BASE="${LAST#v}"
+          MAJOR=$(echo "$BASE" | cut -d. -f1)
+          MINOR=$(echo "$BASE" | cut -d. -f2)
+          PATCH=$(echo "$BASE" | cut -d. -f3)
+          PATCH=$((PATCH + 1))
+          NEW="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "tag=$NEW"      >> "$GITHUB_OUTPUT"
+          echo "previous=$LAST" >> "$GITHUB_OUTPUT"
+          echo "Bumping $LAST → $NEW (patch, auto)"
+
+      - name: Create and push annotated tag
+        if: steps.skip.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.next.outputs.tag }}" \
+            -m "Release ${{ steps.next.outputs.tag }} (auto-tagged from ${{ github.sha }})"
+          git push origin "${{ steps.next.outputs.tag }}"
+
+      - name: Summary
+        run: |
+          {
+            if [[ "${{ steps.skip.outputs.skip }}" == "true" ]]; then
+              echo "## Skipped"
+              echo "HEAD already has a v* tag, nothing to do."
+            else
+              echo "## Tagged ${{ steps.next.outputs.tag }}"
+              echo ""
+              echo "- Previous: \`${{ steps.next.outputs.previous }}\`"
+              echo "- New: \`${{ steps.next.outputs.tag }}\`"
+              echo ""
+              echo "Release workflow will fire on the tag push and produce a draft GitHub Release with the DMG."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
