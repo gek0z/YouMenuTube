@@ -12,6 +12,8 @@ struct VideoEntryTests {
             title: "t",
             channelTitle: nil,
             timePosted: nil,
+            viewCount: nil,
+            duration: nil,
             thumbnailURL: nil,
             isShort: true
         )
@@ -20,6 +22,8 @@ struct VideoEntryTests {
             title: "t",
             channelTitle: "c",
             timePosted: "1d ago",
+            viewCount: "12K views",
+            duration: "3:42",
             thumbnailURL: nil,
             isShort: false
         )

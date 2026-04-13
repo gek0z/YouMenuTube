@@ -268,6 +268,8 @@ final class YouTubeService {
             title: v.title ?? "(untitled)",
             channelTitle: v.channel?.name,
             timePosted: v.timePosted,
+            viewCount: v.viewCount,
+            duration: v.timeLength,
             thumbnailURL: bestThumb?.url,
             isShort: isShort
         )

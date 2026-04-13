@@ -5,12 +5,42 @@ struct VideoRow: View {
     var onPlay: () -> Void
     @Environment(YouTubeService.self) private var yt
 
+    private var metaLine: String {
+        let time = entry.timePosted?.trimmingCharacters(in: .whitespaces)
+        let views = entry.viewCount?.trimmingCharacters(in: .whitespaces)
+        // YouTube sometimes returns the same string for both fields (or a
+        // date string in place of views), so only keep `views` when it
+        // actually looks like a view count.
+        let viewsLooksReal: Bool = {
+            guard let v = views, !v.isEmpty, v.caseInsensitiveCompare(time ?? "") != .orderedSame else {
+                return false
+            }
+            let lower = v.lowercased()
+            return lower.contains("view") || lower.contains("watching")
+        }()
+        let parts = [time, viewsLooksReal ? views : nil]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+        return parts.isEmpty ? " " : parts.joined(separator: " • ")
+    }
+
     var body: some View {
         Button(action: onPlay) {
             HStack(alignment: .top, spacing: 10) {
                 ThumbnailView(url: entry.thumbnailURL)
                     .frame(width: 120, height: 68)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay(alignment: .bottomLeading) {
+                        if let duration = entry.duration, !duration.isEmpty {
+                            Text(duration)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(.black.opacity(0.75), in: Capsule())
+                                .padding(4)
+                        }
+                    }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(entry.title)
                         .font(.system(size: 12, weight: .semibold))
@@ -19,7 +49,7 @@ struct VideoRow: View {
                     Text(entry.channelTitle ?? " ")
                         .font(.caption2).foregroundStyle(.secondary)
                         .lineLimit(1)
-                    Text(entry.timePosted ?? " ")
+                    Text(metaLine)
                         .font(.caption2).foregroundStyle(.tertiary)
                         .lineLimit(1)
                 }
