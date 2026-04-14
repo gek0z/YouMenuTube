@@ -34,13 +34,14 @@ struct ImportSessionWindow: View {
             header
             Divider()
             browserPicker
+            headsUpBanner
             statusRow
             Spacer(minLength: 0)
             Divider()
             footer
         }
         .padding(20)
-        .frame(width: 480, height: 440)
+        .frame(width: 480, height: 460)
         .onAppear {
             dock.present(WindowID.importSession)
             browsers = BrowserDetector.installed()
@@ -78,6 +79,31 @@ struct ImportSessionWindow: View {
                 .pickerStyle(.menu)
                 .labelsHidden()
                 .disabled(status.isWorking)
+            }
+        }
+    }
+
+    /// Warns the user about the one-time OS prompt their selected browser
+    /// will trigger, so the "why is this app asking for my login password?"
+    /// moment doesn't come out of nowhere. Firefox has no prompt → no banner.
+    @ViewBuilder
+    private var headsUpBanner: some View {
+        if let browser = selected {
+            switch browser.format {
+            case .chromium:
+                Banner(
+                    icon: "lock.shield",
+                    text:
+                        "macOS will ask for your login password once — that's the standard Keychain prompt that lets YouMenuTube read \(browser.displayName)'s cookie-encryption key. Click **Always Allow** to skip it on later imports. Touch ID may appear on Macs that support it."
+                )
+            case .safari:
+                Banner(
+                    icon: "externaldrive.badge.exclamationmark",
+                    text:
+                        "Safari's cookies live in a protected container. Import will fail the first time unless YouMenuTube has **Full Disk Access** in System Settings → Privacy & Security."
+                )
+            case .firefox:
+                EmptyView()
             }
         }
     }
@@ -179,11 +205,46 @@ struct ImportSessionWindow: View {
     }
 
     private func bringToFront() {
-        NSApp.activate(ignoringOtherApps: true)
+        // `NSApp.activate(ignoringOtherApps:)` was softened in macOS 14 — it
+        // only activates if the caller was recently user-facing, which a
+        // MenuBarExtra popover is not once it closes. `activate()` (no arg)
+        // is the replacement and works reliably for LSUIElement apps.
+        NSApp.activate()
+        // The NSWindow usually isn't in `NSApp.windows` yet when `onAppear`
+        // fires on first open. Poll a few times instead of assuming one
+        // runloop is enough — fixes the "Sign in button did nothing"
+        // symptom when the host app is an LSUIElement + MenuBarExtra.
         Task { @MainActor in
-            NSApp.windows
-                .first { $0.title == "Import YouTube session" }?
-                .makeKeyAndOrderFront(nil)
+            for _ in 0..<10 {
+                if let w = NSApp.windows.first(where: { $0.title == "Import YouTube session" }) {
+                    w.makeKeyAndOrderFront(nil)
+                    return
+                }
+                try? await Task.sleep(for: .milliseconds(50))
+            }
         }
+    }
+}
+
+private struct Banner: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .foregroundStyle(.tint)
+                .font(.title3)
+            Text(.init(text))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.accentColor.opacity(0.08))
+        )
     }
 }
