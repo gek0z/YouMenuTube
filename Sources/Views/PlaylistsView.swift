@@ -34,15 +34,6 @@ struct PlaylistsView: View {
         }
     }
 
-    /// `myPlaylists()` returns Watch Later and Liked Videos as ordinary
-    /// playlists too. Drop them so they don't render twice alongside the
-    /// synthetic built-in rows.
-    private func isUserPlaylist(_ p: PlaylistEntry) -> Bool {
-        if BuiltInPlaylist.allIds.contains(p.id) { return false }
-        let title = p.title.lowercased()
-        return title != "watch later" && title != "liked videos"
-    }
-
     private var list: some View {
         Group {
             if let error {
@@ -56,7 +47,7 @@ struct PlaylistsView: View {
                         Divider().opacity(0.3)
                         syntheticRow(id: BuiltInPlaylist.likedVideos, title: "Liked Videos", system: "hand.thumbsup")
                         Divider().opacity(0.3)
-                        ForEach(playlists.filter(isUserPlaylist)) { p in
+                        ForEach(playlists.filter { !BuiltInPlaylist.isBuiltIn($0) }) { p in
                             row(p)
                             Divider().opacity(0.3)
                         }
