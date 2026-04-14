@@ -32,4 +32,14 @@ enum BuiltInPlaylist {
         default: return nil
         }
     }
+
+    /// `myPlaylists()` returns Watch Later and Liked Videos as ordinary
+    /// playlists too, usually with YouTube's own casing ("Watch later",
+    /// "Liked videos"). Callers that render the built-ins separately use
+    /// this to drop the duplicates from the user-playlists list.
+    static func isBuiltIn(_ p: PlaylistEntry) -> Bool {
+        if allIds.contains(p.id) { return true }
+        let title = p.title.lowercased()
+        return title == "watch later" || title == "liked videos"
+    }
 }

@@ -49,9 +49,10 @@ struct SettingsView: View {
                             Text("None").tag(Optional<String>.none)
                             Text("Watch Later").tag(Optional(BuiltInPlaylist.watchLater))
                             Text("Liked Videos").tag(Optional(BuiltInPlaylist.likedVideos))
-                            if !playlists.isEmpty {
+                            let userPlaylists = playlists.filter { !BuiltInPlaylist.isBuiltIn($0) }
+                            if !userPlaylists.isEmpty {
                                 Divider()
-                                ForEach(playlists) { p in
+                                ForEach(userPlaylists) { p in
                                     Text(p.title).tag(Optional(p.id))
                                 }
                             }
