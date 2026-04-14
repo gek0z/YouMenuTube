@@ -29,8 +29,11 @@ struct SettingsView: View {
                         Button("Sign out", role: .destructive) { yt.signOut() }
                             .controlSize(.small)
                     } else {
-                        Button("Sign in") { openWindow(id: WindowID.signIn) }
-                            .controlSize(.small)
+                        Button("Sign in") {
+                            NSApp.keyWindow?.close()
+                            openWindow(id: WindowID.signIn)
+                        }
+                        .controlSize(.small)
                     }
                 }
                 Text(

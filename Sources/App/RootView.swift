@@ -47,6 +47,10 @@ struct RootView: View {
     }
 
     private func presentSignIn() {
+        // Close the MenuBarExtra popover so focus can shift to the new
+        // window. When the popover stays key, AppKit leaves the newly
+        // opened sign-in window behind whatever app was frontmost.
+        NSApp.keyWindow?.close()
         openWindow(id: WindowID.signIn)
     }
 
