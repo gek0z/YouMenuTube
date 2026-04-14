@@ -1,5 +1,6 @@
 import CommonCrypto
 import Foundation
+import LocalAuthentication
 import SQLite3
 import Security
 
@@ -87,12 +88,24 @@ enum ChromiumCookies {
     // MARK: - Keychain
 
     private static func fetchSafeStoragePassword(service: String, account: String, browser: Browser) throws -> String {
+        // Passing an LAContext lets the system upgrade the prompt to Touch
+        // ID on Macs that have it enrolled — but only if the keychain
+        // item's ACL was created with biometric-compatible flags. Chromium
+        // browsers don't do that when they add their Safe Storage key, so
+        // in practice the OS still falls back to a password prompt. Harmless
+        // to pass it either way; costs nothing and gives Touch ID to any
+        // future Chromium build whose ACL ever gains biometric support.
+        let context = LAContext()
+        context.localizedReason = "Import your YouTube session from \(browser.displayName)"
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecUseAuthenticationContext as String: context,
+            kSecUseOperationPrompt as String: "read \(browser.displayName)'s cookie-encryption key",
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
