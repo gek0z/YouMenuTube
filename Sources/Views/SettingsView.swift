@@ -101,6 +101,12 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+
+            Section {
+                Button("Quit YouMenuTube", role: .destructive) {
+                    NSApplication.shared.terminate(nil)
+                }
+            }
         }
         .formStyle(.grouped)
         .task(id: yt.isSignedIn) {
