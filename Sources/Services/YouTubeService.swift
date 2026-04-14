@@ -73,6 +73,17 @@ final class YouTubeService {
         }
     }
 
+    /// Called when any authenticated endpoint reports `isDisconnected` —
+    /// YouTube rejected our cookies despite them being present locally.
+    /// Wipes the stale session so every tab (Home included) reflects the
+    /// signed-out state consistently, instead of Home silently falling
+    /// through to the public feed while other tabs surface an error.
+    private func handleDisconnected() {
+        log.notice("server reported disconnected session — wiping local cookies")
+        lastError = YTServiceError.disconnected.errorDescription
+        signOut()
+    }
+
     /// Reads cookies from the shared WKWebsiteDataStore (where the sign-in
     /// sheet's WKWebView wrote them) and persists them if a usable session
     /// is present. Populates `lastError` with the set of cookie names found
@@ -156,7 +167,10 @@ final class YouTubeService {
         let resp = try await AccountSubscriptionsFeedResponse.sendThrowingRequest(
             youtubeModel: model, data: [:], useCookies: true
         )
-        if resp.isDisconnected { throw YTServiceError.disconnected }
+        if resp.isDisconnected {
+            handleDisconnected()
+            throw YTServiceError.disconnected
+        }
         return resp.results.map(Self.entry(from:)).uniqued(by: \.id)
     }
 
@@ -167,7 +181,10 @@ final class YouTubeService {
         let resp = try await AccountPlaylistsResponse.sendThrowingRequest(
             youtubeModel: model, data: [:], useCookies: true
         )
-        if resp.isDisconnected { throw YTServiceError.disconnected }
+        if resp.isDisconnected {
+            handleDisconnected()
+            throw YTServiceError.disconnected
+        }
         return resp.results.map(Self.entry(from:)).uniqued(by: \.id)
     }
 
@@ -197,7 +214,10 @@ final class YouTubeService {
                 youtubeModel: model,
                 data: [.browseId: "WL", .movingVideoId: videoId]
             )
-            if resp.isDisconnected { throw YTServiceError.disconnected }
+            if resp.isDisconnected {
+                handleDisconnected()
+                throw YTServiceError.disconnected
+            }
             guard resp.success else { throw YTServiceError.actionFailed }
         } catch {
             watchLaterIds.remove(videoId)
@@ -213,7 +233,10 @@ final class YouTubeService {
                 youtubeModel: model,
                 data: [.browseId: "WL", .movingVideoId: videoId]
             )
-            if resp.isDisconnected { throw YTServiceError.disconnected }
+            if resp.isDisconnected {
+                handleDisconnected()
+                throw YTServiceError.disconnected
+            }
             guard resp.success else { throw YTServiceError.actionFailed }
         } catch {
             watchLaterIds.insert(videoId)

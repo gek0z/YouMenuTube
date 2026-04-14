@@ -106,8 +106,8 @@ struct YouTubeSignInWindow: View {
             .padding(10)
         }
         .onAppear {
-            NSApp.activate(ignoringOtherApps: true)
             dock.present(WindowID.signIn)
+            bringToFront()
         }
         .onDisappear { dock.dismiss(WindowID.signIn) }
         .onChange(of: holder.isAtYouTube) { _, onYouTube in
@@ -128,6 +128,18 @@ struct YouTubeSignInWindow: View {
                     didAutoCapture = false
                 }
             }
+        }
+    }
+
+    private func bringToFront() {
+        NSApp.activate(ignoringOtherApps: true)
+        // Defer makeKeyAndOrderFront one runloop: on first open the
+        // NSWindow isn't fully wired up yet when onAppear fires — same
+        // dance PlayerWindow does.
+        Task { @MainActor in
+            NSApp.windows
+                .first { $0.title == "Sign in to YouTube" }?
+                .makeKeyAndOrderFront(nil)
         }
     }
 }
