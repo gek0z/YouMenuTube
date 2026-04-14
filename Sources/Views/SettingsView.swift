@@ -31,7 +31,7 @@ struct SettingsView: View {
                     } else {
                         Button("Sign in") {
                             NSApp.keyWindow?.close()
-                            openWindow(id: WindowID.signIn)
+                            openWindow(id: WindowID.importSession)
                         }
                         .controlSize(.small)
                     }

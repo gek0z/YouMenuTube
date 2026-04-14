@@ -2,7 +2,7 @@ import Foundation
 
 enum WindowID {
     static let player = "player"
-    static let signIn = "youtube-signin"
+    static let importSession = "youtube-import-session"
 }
 
 enum UserAgent {

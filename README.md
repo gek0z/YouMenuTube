@@ -14,8 +14,10 @@ A macOS menu-bar app that puts YouTube in your menubar:
 Built with SwiftUI `MenuBarExtra`, targeting **macOS 15 Sequoia or later**.
 Powered by [YouTubeKit](https://github.com/b5i/YouTubeKit) — talks to
 YouTube's own internal "InnerTube" API directly. **No Google Cloud project,
-no API key, no OAuth client to set up.** You sign into youtube.com once
-inside the app and you're done.
+no API key, no OAuth client to set up.** Sign into youtube.com in your
+usual browser — passkeys, password managers, all of it — and YouMenuTube
+imports the session. Supports Safari, Chrome, Edge, Arc, Brave, Vivaldi,
+Opera, Helium and Firefox.
 
 > ## ⚠️ Important — read before installing
 >
@@ -23,9 +25,9 @@ inside the app and you're done.
 > sponsored by YouTube, Google, or Alphabet.** All trademarks belong to
 > their respective owners.
 >
-> The app authenticates by capturing the cookies from a YouTube sign-in
-> performed inside an embedded `WKWebView`, then talks to YouTube's
-> internal **InnerTube** API via [YouTubeKit](https://github.com/b5i/YouTubeKit).
+> The app authenticates by importing `youtube.com` cookies out of your
+> browser's on-disk cookie store (same trick yt-dlp uses), then talks to
+> YouTube's internal **InnerTube** API via [YouTubeKit](https://github.com/b5i/YouTubeKit).
 > This is the same surface YouTube's own website uses, but it is **not a
 > public API** and using it is **arguably outside YouTube's Terms of
 > Service**. The API can — and occasionally does — change or break without
@@ -81,7 +83,15 @@ YouMenuTube/
 │   │   ├── PlayerController.swift
 │   │   ├── RefreshTrigger.swift     # shared "user pressed refresh" signal
 │   │   ├── UpdateChecker.swift      # polls /releases/latest
-│   │   └── Keychain.swift
+│   │   ├── Keychain.swift
+│   │   └── BrowserCookieImport/        # Reads youtube.com cookies from the user's browser
+│   │       ├── Browser.swift
+│   │       ├── BrowserDetector.swift
+│   │       ├── BrowserCookieImporter.swift
+│   │       ├── SQLiteReader.swift
+│   │       ├── FirefoxCookies.swift
+│   │       ├── ChromiumCookies.swift
+│   │       └── SafariBinaryCookies.swift
 │   ├── Models/
 │   │   └── YouTubeModels.swift      # VideoEntry, PlaylistEntry
 │   ├── Utilities/
@@ -95,7 +105,7 @@ YouMenuTube/
 │       ├── SearchView.swift
 │       ├── SettingsView.swift
 │       ├── PlayerWindow.swift
-│       └── YouTubeSignInSheet.swift
+│       └── ImportSessionWindow.swift
 ├── Tests/
 │   └── SmokeTests.swift             # Swift Testing target
 ├── LICENSE                          # Apache 2.0
@@ -120,9 +130,10 @@ opens Xcode. In Xcode:
 2. Build & Run (⌘R).
 3. There's no Dock icon (by design — `LSUIElement`). Look for the ▶️ icon in
    the menu bar.
-4. Click the icon → **Sign in** → log in to youtube.com inside the sheet. As
-   soon as the page lands back on `youtube.com`, the sheet auto-captures the
-   session cookies (stored in the macOS Keychain) and closes itself.
+4. Click the icon → **Sign in** → pick the browser where you're already
+   signed in to youtube.com. First import may ask for a one-time permission
+   (see "How sign-in works" below). Session cookies land in the macOS
+   Keychain and the window closes.
 
 `bootstrap.sh` flags: `--no-open`, `--clean`.
 
@@ -138,17 +149,28 @@ opens Xcode. In Xcode:
 | Liked Videos        | `PlaylistInfosResponse` (browseId `VLLL`) |
 | Search              | `SearchResponse`                          |
 
-Auth is just a cookie string captured from `WKWebView`'s shared cookie store
-after you sign into youtube.com inside the sign-in sheet. The capture is
-filtered to `*.youtube.com`-scoped cookies only — mixing in `.google.com` or
-`accounts.google.com` cookies makes InnerTube respond with `loggedOut=true`.
-The resulting blob is persisted in the macOS Keychain and handed to
-YouTubeKit via `YouTubeModel.cookies`.
+### How sign-in works
 
-The sign-in `WKWebView` spoofs a Safari user-agent, since Google blocks
-sign-in from the default `WKWebView` UA. Site data for `youtube.com` /
-`google.com` is also cleared before the sheet loads, so stale visitor
-cookies from prior attempts don't trip Google's embedded-browser detection.
+YouMenuTube doesn't host a sign-in UI of its own. Instead it imports
+`youtube.com` cookies directly out of your browser's cookie store, so the
+sign-in itself happens wherever your passkeys / password manager already
+work — your normal browser. Three formats covered:
+
+| Browser family | Storage | What macOS will ask |
+|---|---|---|
+| **Safari** | Binary cookies inside the Safari container | One-time **Full Disk Access** grant (System Settings → Privacy & Security → Full Disk Access → add YouMenuTube). Without it the import fails cleanly. |
+| **Chrome / Edge / Arc / Brave / Vivaldi / Opera / Helium** (Chromium family) | SQLite + AES-128-CBC with a key in the login Keychain | A standard "YouMenuTube wants to use confidential information stored in 'Chrome Safe Storage' …" Keychain prompt. Click **Always Allow** once per browser. (Helium's Keychain entry is `Helium Storage Key` rather than the usual `… Safe Storage`, but the flow is identical.) |
+| **Firefox** | Plain SQLite, unencrypted | No prompt. |
+
+The importer filters strictly to `*.youtube.com`-scoped rows — mixing in
+`.google.com` or `accounts.google.com` cookies makes InnerTube respond
+with `loggedOut=true`. The resulting blob is persisted in the macOS
+Keychain and handed to YouTubeKit via `YouTubeModel.cookies`.
+
+If your browser isn't signed in to youtube.com yet, the import window
+shows a "Sign in to YouTube in [Browser]" button that opens your browser
+to `https://www.youtube.com/signin` for you. Come back to YouMenuTube
+once signed in and click **Import**.
 
 The Now Playing window wraps `youtube.com/embed/<id>` in a tiny HTML page
 loaded with `baseURL = https://youmenutube.local/`. The fake-but-real-looking
@@ -203,16 +225,21 @@ commit, e.g. `0.1.0 · 19d5410`.
 
 ## Troubleshooting
 
-- **Sheet doesn't auto-close after you sign in** — you haven't fully landed
-  on `www.youtube.com` yet. Cookie-consent and "choose account" interstitials
-  count; finish those until the status bar URL in the sheet reads
-  `www.youtube.com`, at which point the sheet auto-captures and closes.
-  Manual **Done** is still available as a fallback.
-- **Google shows "This browser or app may not be secure"** — stale visitor
-  cookies are tripping Google's detection. Sign out from Settings (which
-  wipes the WKWebView store), reopen the sign-in sheet, try again.
+- **Import says "Safari's cookies live inside a protected container"** —
+  macOS requires **Full Disk Access** to read `~/Library/Containers/com.apple.Safari/…`.
+  System Settings → Privacy & Security → Full Disk Access → add YouMenuTube
+  (the Import window has a shortcut button for this). Re-run Import.
+- **Import says "Couldn't read [Browser]'s cookie-encryption key from the
+  Keychain"** — you clicked Deny on the macOS Keychain prompt. Open
+  Keychain Access, search for "Safe Storage" for that browser, open the
+  entry → **Access Control** tab → remove YouMenuTube from the deny list
+  (or delete the ACL), then re-run Import and click **Always Allow**.
+- **Import says "[Browser] isn't signed in to YouTube"** — the browser
+  you picked doesn't have a valid YouTube session. Click the
+  "Sign in to YouTube in [Browser]" button, complete sign-in there, then
+  re-run Import.
 - **Subscriptions / playlists empty after signing in** — enable verbose
-  logging to see what the capture produced:
+  logging to see what the import produced:
   `log stream --predicate 'subsystem == "app.youmenutube"' --level debug`.
   If session markers (SAPISID, SID, LOGIN_INFO, __Secure-3PSIDTS) are all
   present but InnerTube still says `loggedOut=true`, YouTubeKit may be out
@@ -229,16 +256,17 @@ YouMenuTube runs entirely on your Mac. There is no telemetry, no analytics,
 no crash reporting back-channel, no remote config. The app reaches the
 network only for:
 
-- `youtube.com` / `accounts.google.com` during sign-in
 - YouTube's own InnerTube endpoints for feeds, playlists, and search
 - `api.github.com/repos/gek0z/YouMenuTube/releases/latest` once per launch
   to render the update-available link in Settings → About
 
-Your YouTube session cookies — captured from the sign-in `WKWebView` and
-filtered to `*.youtube.com` only — are stored in the macOS Keychain under
-service `com.youmenutube.app`. They never leave your machine except as the
-`Cookie` header on requests YouTube itself receives. Sign out at any time
-to wipe them (Settings → Account → Sign out).
+Sign-in itself happens in your browser, not in YouMenuTube — the app
+doesn't make network requests to Google / YouTube for authentication. It
+reads `youtube.com` cookies out of your browser's on-disk cookie store
+(filtered to `*.youtube.com` only), stores them in the macOS Keychain
+under service `com.youmenutube.app`, and uses them as the `Cookie` header
+on its own InnerTube requests. Sign out at any time to wipe them
+(Settings → Account → Sign out).
 
 ## License
 

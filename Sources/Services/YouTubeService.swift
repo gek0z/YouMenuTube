@@ -1,14 +1,15 @@
 import Foundation
 import OSLog
 import Observation
-import WebKit
 import YouTubeKit
 
 private let log = Logger(subsystem: "app.youmenutube", category: "yt-service")
 
 /// Single auth + API surface for the app. Uses YouTubeKit (InnerTube) for
-/// everything, signed in via cookies captured from a WKWebView. No Google
-/// Cloud project, no API key, no OAuth — just a YouTube login.
+/// everything, signed in via cookies imported from the user's own browser
+/// (Safari / Chrome / Firefox / etc — see `BrowserCookieImporter`). No
+/// Google Cloud project, no API key, no OAuth — just a YouTube login
+/// handed to us by the browser the user already uses.
 ///
 /// Trade-off: InnerTube is YouTube's *internal* API. It can break and is
 /// against ToS strictly speaking. Use for personal projects.
@@ -37,14 +38,6 @@ final class YouTubeService {
 
     // MARK: - Auth (cookies)
 
-    /// A WKWebsiteDataRecord is "ours" if it's hosted under youtube.com or
-    /// google.com — those are the only domains our sign-in flow touches,
-    /// and wiping them between attempts prevents Google's detection from
-    /// latching onto stale visitor cookies.
-    private static func isYouTubeOrGoogle(_ record: WKWebsiteDataRecord) -> Bool {
-        record.displayName.contains("youtube") || record.displayName.contains("google")
-    }
-
     private func apply(cookies: String) {
         model.cookies = cookies
         model.alwaysUseCookies = !cookies.isEmpty
@@ -63,14 +56,13 @@ final class YouTubeService {
         isSignedIn = false
         watchLaterRefreshTask?.cancel()
         watchLaterIds = []
+    }
 
-        let store = WKWebsiteDataStore.default()
-        let types: Set<String> = [
-            WKWebsiteDataTypeCookies, WKWebsiteDataTypeLocalStorage, WKWebsiteDataTypeSessionStorage,
-        ]
-        store.fetchDataRecords(ofTypes: types) { records in
-            store.removeData(ofTypes: types, for: records.filter(Self.isYouTubeOrGoogle)) {}
-        }
+    /// Called before showing the import UI so the previous run's error text
+    /// doesn't stick around in Settings → Diagnostic while the user's
+    /// re-import attempt is in flight.
+    func clearLastError() {
+        lastError = nil
     }
 
     /// Called when any authenticated endpoint reports `isDisconnected` —
@@ -84,69 +76,60 @@ final class YouTubeService {
         signOut()
     }
 
-    /// Reads cookies from the shared WKWebsiteDataStore (where the sign-in
-    /// sheet's WKWebView wrote them) and persists them if a usable session
-    /// is present. Populates `lastError` with the set of cookie names found
-    /// so we can diagnose when InnerTube rejects the session despite cookies
-    /// being present.
+    /// Persists a batch of `HTTPCookie`s (already filtered to `youtube.com`
+    /// and validated by the caller) as a single Cookie header. Used by
+    /// `BrowserCookieImporter` after reading the user's browser store.
+    ///
+    /// The filter + session-marker validation live on the importer side
+    /// now so the UI can surface a precise "this browser isn't signed in
+    /// to YouTube" error before we even get here. This method trusts its
+    /// input and does the last-mile persistence only.
     @discardableResult
-    func captureCookiesFromSharedStore() async -> Bool {
-        let store = WKWebsiteDataStore.default().httpCookieStore
-        let cookies: [HTTPCookie] = await withCheckedContinuation { cont in
-            store.getAllCookies { cont.resume(returning: $0) }
-        }
-        log.notice("capture: got \(cookies.count) total cookies in shared store")
-
-        // Only send cookies scoped to youtube.com in the InnerTube header. Mixing
-        // in .google.com / accounts.google.com cookies (LSID, __Host-1PLSID, OTZ,
-        // etc.) would never happen in a real browser request to www.youtube.com,
-        // and InnerTube responds with loggedOut=true when it sees them.
+    func ingest(cookies: [HTTPCookie]) -> Bool {
         let relevant = cookies.filter { $0.domain.hasSuffix("youtube.com") }
+        guard !relevant.isEmpty else { return false }
 
-        let byDomain = Dictionary(grouping: relevant, by: { $0.domain })
+        // A browser stores cookies keyed by (name, domain, path) and sends
+        // only the ones whose path prefixes the request path — one value
+        // per name, with the longest matching path winning. If we concatenate
+        // every row from the store we can end up with e.g. three
+        // `VISITOR_INFO1_LIVE=…` values in the header (paths `/`, `/embed`,
+        // `/m`), which InnerTube answers with `loggedOut=true` because a
+        // real browser would never have sent duplicates. Pick the one that
+        // would apply to `/youtubei/v1/…`: longest path that's a prefix of
+        // the request path, tie-broken by latest expiration.
+        let requestPath = "/youtubei/v1/browse"
+        let unique = Self.dedupedForRequest(relevant, requestPath: requestPath)
+
+        let byDomain = Dictionary(grouping: unique, by: { $0.domain })
             .mapValues { $0.map(\.name).sorted().joined(separator: ",") }
         let diagnostic = byDomain.keys.sorted().map { "\($0): \(byDomain[$0] ?? "")" }.joined(separator: " | ")
-        log.notice("capture: youtube.com cookies by domain → \(diagnostic, privacy: .public)")
+        log.notice(
+            "ingest: \(relevant.count)→\(unique.count) after dedup, cookies by domain → \(diagnostic, privacy: .public)"
+        )
 
-        let sessionMarkers: Set<String> = [
-            "SAPISID", "__Secure-3PAPISID", "__Secure-1PAPISID",
-            "SID", "__Secure-3PSID", "__Secure-1PSID",
-            "LOGIN_INFO",
-        ]
-        let present = Set(relevant.map(\.name)).intersection(sessionMarkers)
-        log.notice("capture: session markers present → \(present.sorted().joined(separator: ","), privacy: .public)")
-
-        guard !present.isEmpty else {
-            lastError = "No authenticated session cookies on youtube.com. \(diagnostic)"
-            log.error("capture: no youtube.com session markers — aborting")
-            return false
-        }
-
-        let header = relevant.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
+        let header = unique.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
         Keychain.set(Data(header.utf8), for: cookiesKey)
         apply(cookies: header)
-        lastError = "Captured \(relevant.count) youtube.com cookies. \(diagnostic)"
-        log.notice("capture: persisted \(relevant.count) cookies, header length=\(header.count)")
+        lastError = nil
+        log.notice("ingest: persisted \(unique.count) cookies, header length=\(header.count)")
         return true
     }
 
-    /// Wipes youtube.com / google.com cookies and site data from the shared
-    /// WKWebsiteDataStore so a fresh sign-in starts from clean state. Google's
-    /// detection can latch onto stale visitor cookies accumulated across failed
-    /// attempts, so we clear before opening the sign-in webview.
-    func clearWebSignInState() async {
-        let store = WKWebsiteDataStore.default()
-        let types = WKWebsiteDataStore.allWebsiteDataTypes()
-        let records: [WKWebsiteDataRecord] = await withCheckedContinuation { cont in
-            store.fetchDataRecords(ofTypes: types) { cont.resume(returning: $0) }
+    private static func dedupedForRequest(_ cookies: [HTTPCookie], requestPath: String) -> [HTTPCookie] {
+        // Stable ordering: best candidate per name lands first, weaker
+        // candidates after it; then a single forward pass keeps the first.
+        let sorted = cookies.sorted { a, b in
+            let aMatches = requestPath.hasPrefix(a.path)
+            let bMatches = requestPath.hasPrefix(b.path)
+            if aMatches != bMatches { return aMatches }
+            if a.path.count != b.path.count { return a.path.count > b.path.count }
+            let ax = a.expiresDate ?? .distantFuture
+            let bx = b.expiresDate ?? .distantFuture
+            return ax > bx
         }
-        let targets = records.filter(Self.isYouTubeOrGoogle)
-        log.notice(
-            "clear: wiping \(targets.count) site-data records (\(targets.map(\.displayName).joined(separator: ","), privacy: .public))"
-        )
-        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-            store.removeData(ofTypes: types, for: targets) { cont.resume() }
-        }
+        var seen: Set<String> = []
+        return sorted.filter { seen.insert($0.name).inserted }
     }
 
     // MARK: - Home feed
@@ -319,7 +302,7 @@ enum YTServiceError: LocalizedError {
         case .notSignedIn: return "Sign in to YouTube first."
         case .disconnected:
             return
-                "YouTube rejected the session. Sign out and sign in again — make sure you reach youtube.com logged-in (not just accounts.google.com)."
+                "YouTube rejected the session. Sign out and re-import from your browser — make sure the browser is signed in to youtube.com, not just accounts.google.com."
         case .actionFailed:
             return "YouTube rejected the action."
         }

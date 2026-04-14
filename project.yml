@@ -51,10 +51,11 @@ targets:
     entitlements:
       path: Sources/YouMenuTube.entitlements
       properties:
-        # Intentionally NOT sandboxed: WebKit's WebContent process gets the
-        # host app's sandbox, and an app-sandboxed host blocks pasteboard
-        # (so 1Password copy-paste fails) and ASAuthorization services (so
-        # passkey / Apple Passwords autofill can't surface in WKWebView).
+        # Intentionally NOT sandboxed: the browser-cookie importer reads
+        # other apps' on-disk cookie stores (Safari binarycookies; Chromium
+        # SQLite + login-keychain AES key; Firefox SQLite). An app-sandboxed
+        # host can't read those paths even with user consent, since the
+        # sandbox container layer blocks them before TCC is consulted.
         com.apple.security.app-sandbox: false
     dependencies:
       - package: YouTubeKit

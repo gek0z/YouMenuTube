@@ -10,7 +10,7 @@ struct HomeFeedView: View {
             if !yt.isSignedIn {
                 SignInBanner {
                     NSApp.keyWindow?.close()
-                    openWindow(id: WindowID.signIn)
+                    openWindow(id: WindowID.importSession)
                 }
                 Divider()
             }

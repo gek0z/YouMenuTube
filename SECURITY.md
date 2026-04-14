@@ -1,9 +1,10 @@
 # Security Policy
 
 YouMenuTube is a personal-use macOS menu-bar app that authenticates against
-YouTube by capturing a session cookie blob from a `WKWebView` sign-in and
-storing it on-device. This document describes how to report vulnerabilities,
-what's in scope, and how the app handles credentials.
+YouTube by importing a session cookie blob from the user's own browser
+(Safari / Chrome / Firefox / Edge / Arc / Brave / Vivaldi / Opera / Helium)
+and storing it on-device. This document describes how to report
+vulnerabilities, what's in scope, and how the app handles credentials.
 
 ## Reporting a vulnerability
 
@@ -51,21 +52,41 @@ Out of scope:
 
 ## What the app stores, and where
 
-- **Session cookies** captured from the sign-in `WKWebView` (filtered to
+- **Session cookies** imported from the user's browser (filtered to
   `*.youtube.com` only) are written to the macOS Keychain under service
   `com.youmenutube.app`, account `youtube.cookies.v1`. This is the only
   credential material the app persists. **Sign Out** wipes it.
-- **WKWebView site data** for `youtube.com` and `google.com` lives in the
-  app's standard `WKWebsiteDataStore`. The Sign-In sheet wipes this on open;
-  Sign Out wipes it again.
 - **`@AppStorage` preferences** (autoplay, hide-Shorts, pinned playlist,
   player-floats-on-top) live in standard `NSUserDefaults`.
+
+## What the app reads from other apps (and when it asks)
+
+The "Import YouTube session" flow reads `youtube.com` cookies directly out
+of the selected browser's on-disk cookie store:
+
+- **Safari** requires the user to grant YouMenuTube **Full Disk Access**
+  (System Settings → Privacy & Security → Full Disk Access) because the
+  Safari cookie file lives inside a protected container. Without this grant
+  the reader fails cleanly — it cannot silently read Safari cookies.
+- **Chromium-family browsers** (Chrome, Edge, Arc, Brave, Vivaldi, Opera,
+  Helium) encrypt their cookie values with an AES key stored in the macOS
+  login Keychain under e.g. `Chrome Safe Storage` (or `Helium Storage Key`
+  for Helium). The app calls `SecItemCopyMatching`, which triggers the
+  standard macOS keychain-access prompt ("Always Allow" / "Allow" / "Deny").
+  We only read the Safe Storage key and only for the selected browser.
+- **Firefox** stores cookie values in plain text; no Keychain access is
+  needed.
+
+In every case we select only rows whose host matches `youtube.com`, discard
+everything else before it leaves the reader, and validate that at least one
+session marker (`SAPISID`, `__Secure-3PAPISID`, `SID`, `LOGIN_INFO`, …) is
+present. No other domain's cookies are ever persisted or sent.
 
 ## What the app does *not* do
 
 - No telemetry, analytics, crash reporting, or remote configuration.
-- No outbound network traffic except to `youtube.com` /
-  `accounts.google.com` (sign-in) and YouTube's InnerTube endpoints.
+- No outbound network traffic except to `youtube.com` and YouTube's
+  InnerTube endpoints.
 - No background activity when the menu bar popover is closed.
 
 If you find evidence to the contrary, that's a bug — please report it.

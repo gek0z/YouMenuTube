@@ -82,11 +82,11 @@ maintainer will usually add the label after a quick eyeball.
 - Run `swift-format format -i -r ...` before committing — the pre-commit
   hook will reject unformatted files.
 - Open an issue first for anything that touches the auth flow, the InnerTube
-  cookie filter, or the player window's WKWebView wrapping. Those are
-  fragile and have been hand-tuned for specific Google detection / YouTube
-  embed errors (see the troubleshooting section of the README and the
-  inline comments in `YouTubeService.swift` / `PlayerWindow.swift` /
-  `YouTubeSignInSheet.swift`).
+  cookie filter, the browser cookie readers, or the player window's WKWebView
+  wrapping. Those are fragile and hand-tuned for specific browser cookie-store
+  formats / YouTube embed errors (see the troubleshooting section of the
+  README and the inline comments in `YouTubeService.swift` /
+  `PlayerWindow.swift` / `Sources/Services/BrowserCookieImport/*.swift`).
 
 ## Commit messages
 
