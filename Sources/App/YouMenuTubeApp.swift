@@ -30,8 +30,8 @@ struct YouMenuTubeApp: App {
         .windowResizability(.contentSize)
         .defaultLaunchBehavior(.suppressed)
 
-        Window("Sign in to YouTube", id: WindowID.signIn) {
-            YouTubeSignInWindow()
+        Window("Import YouTube session", id: WindowID.importSession) {
+            ImportSessionWindow()
                 .environment(yt)
                 .environment(dock)
         }
