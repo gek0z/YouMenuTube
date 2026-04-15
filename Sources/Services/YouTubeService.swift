@@ -27,10 +27,21 @@ final class YouTubeService {
 
     @ObservationIgnored let model: YouTubeModel
     @ObservationIgnored private var watchLaterRefreshTask: Task<Void, Never>?
+    @ObservationIgnored let isDemoMode: Bool
     private let cookiesKey = "youtube.cookies.v1"
 
     init() {
         self.model = YouTubeModel()
+        self.isDemoMode = DemoData.isEnabled
+        if isDemoMode {
+            // Pretend we're signed in with a pre-seeded Watch Later so every
+            // tab has content and the "Sign in" chrome is hidden. No keychain
+            // read, no network.
+            log.notice("demo mode active — serving fixtures from DemoData.swift")
+            isSignedIn = true
+            watchLaterIds = DemoData.watchLaterIds
+            return
+        }
         if let data = Keychain.get(cookiesKey), let header = String(data: data, encoding: .utf8) {
             apply(cookies: header)
         }
@@ -137,6 +148,7 @@ final class YouTubeService {
     /// YouTube's main home recommendations. Works signed-out (returns generic
     /// suggestions) but is much richer with cookies attached.
     func homeFeed() async throws -> [VideoEntry] {
+        if isDemoMode { return DemoData.homeFeed }
         let resp = try await HomeScreenResponse.sendThrowingRequest(
             youtubeModel: model, data: [:], useCookies: true
         )
@@ -146,6 +158,7 @@ final class YouTubeService {
     // MARK: - Subscriptions feed
 
     func subscriptionsFeed() async throws -> [VideoEntry] {
+        if isDemoMode { return DemoData.subscriptionsFeed }
         try ensureSignedIn()
         let resp = try await AccountSubscriptionsFeedResponse.sendThrowingRequest(
             youtubeModel: model, data: [:], useCookies: true
@@ -160,6 +173,7 @@ final class YouTubeService {
     // MARK: - My playlists
 
     func myPlaylists() async throws -> [PlaylistEntry] {
+        if isDemoMode { return DemoData.playlists }
         try ensureSignedIn()
         let resp = try await AccountPlaylistsResponse.sendThrowingRequest(
             youtubeModel: model, data: [:], useCookies: true
@@ -176,6 +190,7 @@ final class YouTubeService {
     /// Fetch items for any playlist by id ("VLPL…", "VLWL", "VLLL…").
     /// Accepts ids with or without the "VL" prefix.
     func playlistItems(playlistId rawId: String) async throws -> [VideoEntry] {
+        if isDemoMode { return DemoData.items(for: rawId) }
         let id = rawId.hasPrefix("VL") ? rawId : "VL\(rawId)"
         let resp = try await PlaylistInfosResponse.sendThrowingRequest(
             youtubeModel: model, data: [.browseId: id], useCookies: true
@@ -190,6 +205,10 @@ final class YouTubeService {
     }
 
     func addToWatchLater(videoId: String) async throws {
+        if isDemoMode {
+            watchLaterIds.insert(videoId)
+            return
+        }
         try ensureSignedIn()
         watchLaterIds.insert(videoId)
         do {
@@ -209,6 +228,10 @@ final class YouTubeService {
     }
 
     func removeFromWatchLater(videoId: String) async throws {
+        if isDemoMode {
+            watchLaterIds.remove(videoId)
+            return
+        }
         try ensureSignedIn()
         watchLaterIds.remove(videoId)
         do {
@@ -247,6 +270,7 @@ final class YouTubeService {
     // MARK: - Search
 
     func search(_ query: String) async throws -> [VideoEntry] {
+        if isDemoMode { return DemoData.search(query) }
         let resp = try await SearchResponse.sendThrowingRequest(
             youtubeModel: model, data: [.query: query]
         )

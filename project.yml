@@ -133,3 +133,35 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.youmenutube.app.tests
         MACOSX_DEPLOYMENT_TARGET: "15.0"
         GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  YouMenuTube:
+    # Explicit so it coexists with the Demo scheme below — defining any
+    # top-level schemes disables xcodegen's autogeneration for the target.
+    build:
+      targets:
+        YouMenuTube: all
+        YouMenuTubeTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - YouMenuTubeTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+  YouMenuTube Demo:
+    # Builds the app and launches it with -demo-mode so YouTubeService
+    # serves hardcoded fixtures from DemoData.swift instead of hitting
+    # YouTube. Use this scheme for marketing screenshots.
+    build:
+      targets:
+        YouMenuTube: all
+    run:
+      config: Debug
+      commandLineArguments:
+        "-demo-mode": true

@@ -1,5 +1,13 @@
 # YouMenuTube
 
+[![Latest release](https://img.shields.io/github/v/release/gek0z/YouMenuTube?color=red&label=release)](https://github.com/gek0z/YouMenuTube/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/gek0z/YouMenuTube/total?color=blue)](https://github.com/gek0z/YouMenuTube/releases)
+[![macOS 15+](https://img.shields.io/badge/macOS-15%2B-black?logo=apple)](https://www.apple.com/macos/)
+[![Swift 5.9](https://img.shields.io/badge/Swift-5.9-orange?logo=swift)](https://swift.org)
+[![License: Apache 2.0](https://img.shields.io/github/license/gek0z/YouMenuTube?color=green)](LICENSE)
+
+Website: <https://youmenutube.riccardo.lol/>
+
 A macOS menu-bar app that puts YouTube in your menubar:
 
 - **Home** (default tab) — YouTube's main recommendations feed
@@ -7,7 +15,7 @@ A macOS menu-bar app that puts YouTube in your menubar:
 - Browse your **Playlists** (including **Watch Later** and **Liked Videos**)
 - **Search** YouTube
 - **Settings** for default playlist, autoplay, floating-window behaviour,
-  hide-Shorts (per feed), and version / update-check info
+  hide-Shorts (per feed), launch-at-login, and version / update-check info
 - Click any video to play it in a chrome-less, 16:9 floating mini player
 - In-app **update check** against the latest GitHub release
 
@@ -80,9 +88,12 @@ YouMenuTube/
 │   │   └── RootView.swift
 │   ├── Services/
 │   │   ├── YouTubeService.swift     # one client for everything
+│   │   ├── DemoData.swift           # -demo-mode fixtures for screenshots
 │   │   ├── PlayerController.swift
 │   │   ├── RefreshTrigger.swift     # shared "user pressed refresh" signal
 │   │   ├── UpdateChecker.swift      # polls /releases/latest
+│   │   ├── LoginItem.swift          # SMAppService launch-at-login toggle
+│   │   ├── DockPresence.swift       # Toggles NSApp activation policy when auxiliary windows open
 │   │   ├── Keychain.swift
 │   │   └── BrowserCookieImport/        # Reads youtube.com cookies from the user's browser
 │   │       ├── Browser.swift
@@ -136,6 +147,25 @@ opens Xcode. In Xcode:
    Keychain and the window closes.
 
 `bootstrap.sh` flags: `--no-open`, `--clean`.
+
+### Demo mode (for screenshots)
+
+The project ships a second scheme, **YouMenuTube Demo**, which launches the
+app with `-demo-mode`. In that mode `YouTubeService` swaps every network
+call for the hardcoded fixtures in
+[`Sources/Services/DemoData.swift`](Sources/Services/DemoData.swift) —
+popular real video IDs, so thumbnails render normally and clicking a row
+plays the real video in the embedded player. No sign-in, no keychain, no
+InnerTube traffic. Edit `DemoData.swift` to change what the screenshots
+show.
+
+You can also launch from the command line:
+
+```sh
+open ./path/to/YouMenuTube.app --args -demo-mode
+# or
+YMT_DEMO_MODE=1 ./path/to/YouMenuTube.app/Contents/MacOS/YouMenuTube
+```
 
 ## How it works
 
