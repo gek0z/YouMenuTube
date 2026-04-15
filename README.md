@@ -236,15 +236,17 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for PR conventions and detail.
 Releases are fully automated. The pipeline:
 
 1. **Auto-tag** (`.github/workflows/auto-tag.yml`): every push to `main` that
-   touches `Sources/`, `Tests/`, `project.yml`, or `bootstrap.sh` gets a patch
-   bump (e.g. `v0.1.5 → v0.1.6`). Docs / dependabot / hook / format-config
-   pushes don't trigger it.
+   touches `Sources/`, `Tests/`, `project.yml`, or `bootstrap.sh` triggers a
+   tag. The bump level is derived from the conventional-commit subjects
+   since the previous tag: any `!:` / `BREAKING CHANGE:` commit → **major**,
+   otherwise any `feat(...):` commit → **minor**, otherwise → **patch**.
+   Docs / dependabot / hook / format-config pushes don't trigger it.
 2. **Release** (`.github/workflows/release.yml`): fires on `v*` tag pushes,
    builds the `.app` (Release config), ad-hoc signs it, packages it as a
    `.dmg` with `create-dmg`, and publishes a GitHub Release.
 3. **Bump & Release** (`.github/workflows/bump-release.yml`): manual entry
-   point (Actions tab → Run workflow) for `minor` / `major` bumps. Patches
-   are handled by Auto-tag.
+   point (Actions tab → Run workflow) to force a specific bump or cut a
+   release out-of-band.
 
 Versioning: `CFBundleShortVersionString` is derived from `git describe`
 (post-build script in `project.yml`): `0.1.0` on a tag, `0.1.0+N` past it.

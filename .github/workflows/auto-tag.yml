@@ -1,16 +1,20 @@
 name: Auto-tag
 
 # Push-time auto-bump. When a commit lands on main that actually changes
-# something user-facing (Sources, Tests, project.yml, bootstrap.sh, the
-# release/auto-tag workflows themselves), this fires, bumps the patch part
-# of the latest v* tag, and pushes the new tag. The existing Release
-# workflow then picks up the tag push and produces a draft release with
-# the DMG.
+# something user-facing (Sources, Tests, project.yml, bootstrap.sh), this
+# fires, inspects conventional-commit subjects since the previous tag to
+# decide the bump level, tags, and dispatches the Release workflow.
 #
-# For non-patch bumps (minor / major), use the manual "Bump & Release"
-# workflow instead. For docs-only / dependabot / hooks-only commits, the
-# paths filter below means this workflow doesn't even start, no tag, no
-# release, no inflation.
+# Bump rules:
+#   - any commit with `!` before the `:` (e.g. `feat!:`, `fix(scope)!:`)
+#     or a `BREAKING CHANGE:` footer       -> major bump
+#   - otherwise any `feat(...):` commit    -> minor bump
+#   - otherwise                            -> patch bump
+#
+# The manual "Bump & Release" workflow is still available to force a
+# specific bump or cut a release out-of-band. For docs-only / dependabot
+# / hooks-only commits the paths filter below means this workflow doesn't
+# even start, no tag, no release, no inflation.
 
 on:
   push:
@@ -34,7 +38,7 @@ concurrency:
 
 jobs:
   tag:
-    name: Compute & push patch tag
+    name: Compute & push tag
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -54,7 +58,7 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Compute next patch version
+      - name: Compute next version from conventional commits
         if: steps.skip.outputs.skip == 'false'
         id: next
         run: |
@@ -63,11 +67,37 @@ jobs:
           MAJOR=$(echo "$BASE" | cut -d. -f1)
           MINOR=$(echo "$BASE" | cut -d. -f2)
           PATCH=$(echo "$BASE" | cut -d. -f3)
-          PATCH=$((PATCH + 1))
+
+          # Commits to inspect: everything new since the previous tag. If
+          # there is no previous tag we look at the whole history.
+          if [[ "$LAST" == "v0.0.0" ]]; then
+            RANGE="HEAD"
+          else
+            RANGE="${LAST}..HEAD"
+          fi
+
+          BUMP="patch"
+          # `!` before the `:` in the subject, OR a `BREAKING CHANGE:`
+          # footer anywhere in the message → major.
+          if git log "$RANGE" --format='%B' \
+              | grep -qE '^[a-zA-Z]+(\([^)]+\))?!:|^BREAKING CHANGE:'; then
+            BUMP="major"
+          elif git log "$RANGE" --format='%s' \
+              | grep -qE '^feat(\([^)]+\))?:'; then
+            BUMP="minor"
+          fi
+
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
           NEW="v${MAJOR}.${MINOR}.${PATCH}"
-          echo "tag=$NEW"      >> "$GITHUB_OUTPUT"
-          echo "previous=$LAST" >> "$GITHUB_OUTPUT"
-          echo "Bumping $LAST → $NEW (patch, auto)"
+          echo "tag=$NEW"        >> "$GITHUB_OUTPUT"
+          echo "previous=$LAST"  >> "$GITHUB_OUTPUT"
+          echo "bump=$BUMP"      >> "$GITHUB_OUTPUT"
+          echo "Bumping $LAST → $NEW ($BUMP, auto)"
 
       - name: Create and push annotated tag
         if: steps.skip.outputs.skip == 'false'
@@ -102,6 +132,7 @@ jobs:
               echo ""
               echo "- Previous: \`${{ steps.next.outputs.previous }}\`"
               echo "- New: \`${{ steps.next.outputs.tag }}\`"
+              echo "- Bump: \`${{ steps.next.outputs.bump }}\` (from conventional-commit subjects)"
               echo ""
               echo "Release workflow will fire on the tag push and produce a draft GitHub Release with the DMG."
             fi
