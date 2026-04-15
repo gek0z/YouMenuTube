@@ -2,12 +2,12 @@ import Foundation
 
 /// Browsers we know how to pull youtube.com cookies from.
 ///
-/// Three on-disk formats, eight browser variants:
+/// Three on-disk formats, nine browser variants:
 ///   - Safari binarycookies                → Safari
 ///   - Chromium SQLite + Keychain AES key  → Chrome, Edge, Arc, Brave, Vivaldi, Opera
-///   - Firefox SQLite (plain)              → Firefox
+///   - Firefox SQLite (plain)              → Firefox, Zen
 enum Browser: String, CaseIterable, Identifiable {
-    case safari, chrome, edge, arc, brave, vivaldi, opera, helium, firefox
+    case safari, chrome, edge, arc, brave, vivaldi, opera, helium, firefox, zen
 
     var id: String { rawValue }
 
@@ -16,7 +16,7 @@ enum Browser: String, CaseIterable, Identifiable {
     var format: Format {
         switch self {
         case .safari: .safari
-        case .firefox: .firefox
+        case .firefox, .zen: .firefox
         case .chrome, .edge, .arc, .brave, .vivaldi, .opera, .helium: .chromium
         }
     }
@@ -32,6 +32,7 @@ enum Browser: String, CaseIterable, Identifiable {
         case .opera: "Opera"
         case .helium: "Helium"
         case .firefox: "Firefox"
+        case .zen: "Zen"
         }
     }
 
@@ -49,15 +50,15 @@ enum Browser: String, CaseIterable, Identifiable {
         case .opera: "com.operasoftware.Opera"
         case .helium: "net.imput.helium"
         case .firefox: "org.mozilla.firefox"
+        case .zen: "app.zen-browser.zen"
         }
     }
 
-    /// SF Symbol for the browser picker row.
-    var symbol: String {
-        switch self {
-        case .safari: "safari"
-        default: "globe"
-        }
+    /// Asset-catalog image name for the browser picker row. Sourced from
+    /// each vendor's official wordmark/logo and namespaced under the
+    /// `Browsers` group in `Assets.xcassets`.
+    var iconAsset: String {
+        "Browsers/\(rawValue)"
     }
 
     /// Root directory that contains this browser's user data. `nil` for
@@ -74,6 +75,7 @@ enum Browser: String, CaseIterable, Identifiable {
         case .opera: return appSupport.appending(path: "com.operasoftware.Opera", directoryHint: .isDirectory)
         case .helium: return appSupport.appending(path: "net.imput.helium", directoryHint: .isDirectory)
         case .firefox: return appSupport.appending(path: "Firefox", directoryHint: .isDirectory)
+        case .zen: return appSupport.appending(path: "zen", directoryHint: .isDirectory)
         }
     }
 

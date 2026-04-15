@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build-test:
-    name: Build & Test (macOS 15)
+    name: ci
     runs-on: macos-15
     if: >-
       github.event_name == 'workflow_dispatch' ||

@@ -56,10 +56,15 @@ enum BrowserDetector {
     /// Firefox stores profiles under a root directory with randomised names
     /// (e.g. `abcdef.default-release`). Return every profile that has a
     /// `cookies.sqlite`, most-recently-modified first.
-    static func firefoxCookieStores() -> [URL] {
+    ///
+    /// Works for any Firefox-format browser (Firefox proper, Zen, …): the
+    /// profile layout (`Profiles/<id>.<name>/cookies.sqlite`) is inherited
+    /// from upstream Firefox.
+    static func firefoxCookieStores(for browser: Browser = .firefox) -> [URL] {
+        guard browser.format == .firefox else { return [] }
         let fm = FileManager.default
         let home = fm.homeDirectoryForCurrentUser
-        guard let root = Browser.firefox.userDataRoot(home: home) else { return [] }
+        guard let root = browser.userDataRoot(home: home) else { return [] }
         let profilesDir = root.appending(path: "Profiles", directoryHint: .isDirectory)
         guard
             let children = try? fm.contentsOfDirectory(

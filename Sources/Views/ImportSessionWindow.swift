@@ -71,13 +71,36 @@ struct ImportSessionWindow: View {
                 Text("No supported browser found on this Mac.")
                     .foregroundStyle(.secondary)
             } else {
-                Picker("Browser", selection: $selected) {
+                // We use a `Menu` rather than `Picker(.menu)` because the
+                // closed-state of `Picker(.menu)` flattens to NSPopUpButton,
+                // which ignores SwiftUI frame modifiers on vector images
+                // and renders the brand SVGs at their native viewBox size.
+                // With `Menu`, the closed-state label is pure SwiftUI and
+                // honours our 16×16 frame; the dropdown rows go through
+                // NSMenu, where pre-sizing the `NSImage` keeps them tidy.
+                Menu {
                     ForEach(browsers) { b in
-                        Label(b.displayName, systemImage: b.symbol).tag(Optional(b))
+                        Button {
+                            selected = b
+                        } label: {
+                            Label {
+                                Text(b.displayName)
+                            } icon: {
+                                browserIcon(b)
+                            }
+                        }
+                    }
+                } label: {
+                    if let b = selected {
+                        HStack(spacing: 8) {
+                            browserIcon(b)
+                            Text(b.displayName)
+                        }
+                    } else {
+                        Text("Select a browser")
                     }
                 }
-                .pickerStyle(.menu)
-                .labelsHidden()
+                .menuStyle(.borderlessButton)
                 .disabled(status.isWorking)
             }
         }
@@ -202,6 +225,19 @@ struct ImportSessionWindow: View {
         } else {
             NSWorkspace.shared.open(url)
         }
+    }
+
+    /// Loads the browser's brand icon as a pre-sized `NSImage`. AppKit's
+    /// NSMenu sizes item images from the `NSImage.size` property and
+    /// ignores SwiftUI frame modifiers, so vector SVGs without an
+    /// intrinsic size render at their native viewBox (huge). Copying the
+    /// cached named image and setting `size` fixes the dropdown rows.
+    private func browserIcon(_ browser: Browser) -> Image {
+        guard let original = NSImage(named: browser.iconAsset),
+            let sized = original.copy() as? NSImage
+        else { return Image(systemName: "globe") }
+        sized.size = NSSize(width: 16, height: 16)
+        return Image(nsImage: sized)
     }
 
     private func bringToFront() {
