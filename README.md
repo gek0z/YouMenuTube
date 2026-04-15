@@ -51,9 +51,10 @@ Opera, Helium, Firefox and Zen.
 
 ## Install
 
-1. Grab the latest DMG from the [latest release](https://github.com/gek0z/YouMenuTube/releases/latest)
-   (that link permanently redirects to the newest published version, so you
-   can bookmark it).
+1. Grab the latest DMG from the [website](https://youmenutube.riccardo.lol/)
+   or directly from the [latest release](https://github.com/gek0z/YouMenuTube/releases/latest)
+   on GitHub (that link permanently redirects to the newest published version,
+   so you can bookmark it).
 2. Open the DMG and drag `YouMenuTube.app` into `/Applications`.
 3. **First launch**: because the build is ad-hoc signed (no paid Apple
    Developer ID), Gatekeeper will refuse it on a normal double-click. Either:
