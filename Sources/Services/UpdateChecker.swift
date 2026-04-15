@@ -72,7 +72,7 @@ final class UpdateChecker {
             if Self.compare(current: currentVersion, latest: latest) {
                 state = .available(
                     version: release.tagName,
-                    url: URL(string: release.htmlUrl) ?? url)
+                    url: URL(string: "https://youmenutube.riccardo.lol/")!)
             } else {
                 state = .upToDate
             }
@@ -105,11 +105,9 @@ final class UpdateChecker {
 
 private struct GitHubRelease: Decodable {
     let tagName: String
-    let htmlUrl: String
 
     enum CodingKeys: String, CodingKey {
         case tagName = "tag_name"
-        case htmlUrl = "html_url"
     }
 }
 
