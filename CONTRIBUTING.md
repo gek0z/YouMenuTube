@@ -90,6 +90,11 @@ maintainer will usually add the label after a quick eyeball.
 
 ## Commit messages
 
+- Follow [Conventional Commits](https://www.conventionalcommits.org/): prefix
+  the subject with a type (`feat`, `fix`, `chore`, `docs`, `refactor`, `ci`,
+  `test`, etc.) and optional scope, e.g. `feat(player): add PiP toggle`. The
+  Auto-tag workflow reads these to pick the bump level — `feat:` → minor,
+  `!:` or `BREAKING CHANGE:` footer → major, everything else → patch.
 - Imperative mood: "Add Home tab", not "Added" or "Adds".
 - Subject ≤ 72 characters; explain *why* in the body, not *what*.
 - One topic per commit. We don't squash on merge; keep history readable.
