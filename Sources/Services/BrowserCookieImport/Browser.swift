@@ -94,7 +94,7 @@ enum Browser: String, CaseIterable, Identifiable {
     /// as a `kSecClassGenericPassword` entry in the login keychain.
     ///
     /// Most Chromium forks use "<Brand> Safe Storage" with account "<Brand>",
-    /// but Helium uses "Helium Storage Key" / "Helium" — so this is handled
+    /// but Helium uses "Helium Storage Key" / "Helium", so this is handled
     /// per-case rather than synthesised from `displayName`.
     var chromiumSafeStorageService: String? {
         switch self {

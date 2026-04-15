@@ -12,7 +12,7 @@ final class PlayerController {
         self.videoId = videoId
         self.title = title
         Self.closeMenuBarPopover()
-        // Activation happens in PlayerWindow.onAppear / onChange — calling
+        // Activation happens in PlayerWindow.onAppear / onChange, calling
         // NSApp.activate here is a no-op while the app is still .accessory
         // (the policy flip only lands once the window has appeared).
     }

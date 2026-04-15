@@ -53,7 +53,7 @@ struct PlayerWindow: View {
         }
         .onChange(of: player.videoId) { _, newId in
             // Playing a fresh video while the window is already open
-            // should still pull focus — otherwise the menubar click
+            // should still pull focus, otherwise the menubar click
             // swaps the video silently in the background.
             if newId != nil { bringToFront() }
         }

@@ -2,7 +2,7 @@ import Foundation
 
 /// Finds which browsers the user actually has a cookie store for on this
 /// machine, so the import UI only offers real choices. We don't use
-/// `NSWorkspace.urlForApplication(withBundleIdentifier:)` — an app being
+/// `NSWorkspace.urlForApplication(withBundleIdentifier:)`, an app being
 /// installed doesn't mean it has ever been run, and without a cookie store
 /// there's nothing to import. Presence of the data directory is the real
 /// signal.
@@ -16,7 +16,7 @@ enum BrowserDetector {
                 // We *can't* stat the Safari container without Full Disk Access
                 // (the stat itself is gated by TCC on macOS 13+). Always list
                 // Safari and let the reader surface the TCC error if FDA hasn't
-                // been granted — that's a clearer UX than silently hiding it.
+                // been granted, that's a clearer UX than silently hiding it.
                 return true
             case .chromium:
                 guard let root = browser.userDataRoot(home: home) else { return false }

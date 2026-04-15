@@ -9,7 +9,7 @@ name: Auto-tag
 #
 # For non-patch bumps (minor / major), use the manual "Bump & Release"
 # workflow instead. For docs-only / dependabot / hooks-only commits, the
-# paths filter below means this workflow doesn't even start — no tag, no
+# paths filter below means this workflow doesn't even start, no tag, no
 # release, no inflation.
 
 on:
@@ -17,7 +17,7 @@ on:
     branches: [main]
     paths:
       # Only files that affect the produced binary trigger an auto-tag.
-      # Workflow / CI changes do *not* — that was the source of the
+      # Workflow / CI changes do *not*, that was the source of the
       # version-inflation we got while iterating on the workflows themselves.
       - "Sources/**"
       - "Tests/**"
@@ -43,7 +43,7 @@ jobs:
 
       - name: Skip if HEAD already has a v* tag
         # If the commit is already tagged (e.g. the Bump & Release workflow
-        # just put one here) there's nothing to do — and re-tagging would
+        # just put one here) there's nothing to do, and re-tagging would
         # collide. Sets `skip=true` for downstream conditions.
         id: skip
         run: |

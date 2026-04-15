@@ -7,8 +7,8 @@ private let log = Logger(subsystem: "app.youmenutube", category: "yt-service")
 
 /// Single auth + API surface for the app. Uses YouTubeKit (InnerTube) for
 /// everything, signed in via cookies imported from the user's own browser
-/// (Safari / Chrome / Firefox / etc — see `BrowserCookieImporter`). No
-/// Google Cloud project, no API key, no OAuth — just a YouTube login
+/// (Safari / Chrome / Firefox / etc.; see `BrowserCookieImporter`). No
+/// Google Cloud project, no API key, no OAuth; just a YouTube login
 /// handed to us by the browser the user already uses.
 ///
 /// Trade-off: InnerTube is YouTube's *internal* API. It can break and is
@@ -20,7 +20,7 @@ final class YouTubeService {
     var lastError: String?
 
     /// Video IDs known to be in the user's Watch Later. Populated lazily on
-    /// sign-in (first page only — covers the most-recent items) and updated
+    /// sign-in (first page only, covers the most-recent items) and updated
     /// optimistically on add/remove. Reads are local; only the toggle action
     /// itself hits the network.
     private(set) var watchLaterIds: Set<String> = []
@@ -37,7 +37,7 @@ final class YouTubeService {
             // Pretend we're signed in with a pre-seeded Watch Later so every
             // tab has content and the "Sign in" chrome is hidden. No keychain
             // read, no network.
-            log.notice("demo mode active — serving fixtures from DemoData.swift")
+            log.notice("demo mode active, serving fixtures from DemoData.swift")
             isSignedIn = true
             watchLaterIds = DemoData.watchLaterIds
             return
@@ -76,13 +76,13 @@ final class YouTubeService {
         lastError = nil
     }
 
-    /// Called when any authenticated endpoint reports `isDisconnected` —
+    /// Called when any authenticated endpoint reports `isDisconnected`,
     /// YouTube rejected our cookies despite them being present locally.
     /// Wipes the stale session so every tab (Home included) reflects the
     /// signed-out state consistently, instead of Home silently falling
     /// through to the public feed while other tabs surface an error.
     private func handleDisconnected() {
-        log.notice("server reported disconnected session — wiping local cookies")
+        log.notice("server reported disconnected session, wiping local cookies")
         lastError = YTServiceError.disconnected.errorDescription
         signOut()
     }
@@ -101,7 +101,7 @@ final class YouTubeService {
         guard !relevant.isEmpty else { return false }
 
         // A browser stores cookies keyed by (name, domain, path) and sends
-        // only the ones whose path prefixes the request path — one value
+        // only the ones whose path prefixes the request path, one value
         // per name, with the longest matching path winning. If we concatenate
         // every row from the store we can end up with e.g. three
         // `VISITOR_INFO1_LIVE=…` values in the header (paths `/`, `/embed`,
@@ -250,7 +250,7 @@ final class YouTubeService {
         }
     }
 
-    /// Reload the Watch Later membership cache. Only fetches the first page —
+    /// Reload the Watch Later membership cache. Only fetches the first page,
     /// far-back items won't show as "saved" until the user toggles them, but
     /// the optimistic local cache keeps recent toggles accurate.
     func refreshWatchLaterIds() {
@@ -326,7 +326,7 @@ enum YTServiceError: LocalizedError {
         case .notSignedIn: return "Sign in to YouTube first."
         case .disconnected:
             return
-                "YouTube rejected the session. Sign out and re-import from your browser — make sure the browser is signed in to youtube.com, not just accounts.google.com."
+                "YouTube rejected the session. Sign out and re-import from your browser. Make sure the browser is signed in to youtube.com, not just accounts.google.com."
         case .actionFailed:
             return "YouTube rejected the action."
         }

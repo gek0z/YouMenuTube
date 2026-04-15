@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# YouMenuTube — one-shot bootstrap
+# YouMenuTube: one-shot bootstrap
 #
 # Usage:
 #   ./bootstrap.sh              # install prereqs, generate project, open Xcode
@@ -45,7 +45,7 @@ xcode_ver=$(awk 'NR==1 { print $2 }' <<<"$xcodebuild_out")
 xcode_ver=${xcode_ver:-0}
 xcode_major=${xcode_ver%%.*}
 if ! [[ "$xcode_major" =~ ^[0-9]+$ ]] || (( xcode_major < 16 )); then
-    yellow "  Xcode $xcode_ver detected — this project targets macOS 15 and expects Xcode 16+."
+    yellow "  Xcode $xcode_ver detected; this project targets macOS 15 and expects Xcode 16+."
 fi
 green "  ✓ macOS + Xcode $xcode_ver"
 

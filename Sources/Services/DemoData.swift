@@ -4,7 +4,7 @@ import Foundation
 /// is launched in demo mode (`-demo-mode` / `YMT_DEMO_MODE=1`). Populated
 /// with real, famous YouTube video IDs so thumbnails render from
 /// `i.ytimg.com` and clicking a row still plays the real video in the
-/// embedded player — no network call needed to produce the row itself.
+/// embedded player, no network call needed to produce the row itself.
 ///
 /// To change the look of the screenshots, edit the arrays below.
 enum DemoData {
@@ -12,7 +12,7 @@ enum DemoData {
     // MARK: - Videos
 
     /// Builds a `VideoEntry` using `https://i.ytimg.com/vi/<id>/hqdefault.jpg`
-    /// for the thumbnail — which reliably exists for any real video ID.
+    /// for the thumbnail, which reliably exists for any real video ID.
     private static func video(
         _ id: String,
         _ title: String,
@@ -33,7 +33,7 @@ enum DemoData {
         )
     }
 
-    /// What the Home tab shows in demo mode. Classic memes / viral videos —
+    /// What the Home tab shows in demo mode. Classic memes / viral videos,
     /// thumbnails all come from `i.ytimg.com` for these real IDs. Order is
     /// curated so the most-recently-added entries land above the fold of
     /// the 420×560 popover (~6 rows visible without scrolling).
@@ -47,7 +47,7 @@ enum DemoData {
             channel: "Protectstar Inc.", time: "15 years ago",
             views: "14M views", duration: "1:20:16"),
         video(
-            "92fLApYaCGI", "Michael Jordan \"The Last Shot\" – #NBATogetherLive Classic Game",
+            "92fLApYaCGI", "Michael Jordan \"The Last Shot\", #NBATogetherLive Classic Game",
             channel: "NBA", time: "6 years ago",
             views: "32M views", duration: "2:33"),
         video(
@@ -178,7 +178,7 @@ enum DemoData {
         }
     }
 
-    /// Seed set for the "is this in my Watch Later?" cache — drives the
+    /// Seed set for the "is this in my Watch Later?" cache, drives the
     /// clock badge state on Home rows on first launch.
     static let watchLaterIds: Set<String> = ["dQw4w9WgXcQ", "tzD9OxAHtzU", "XnygT6ANLzQ", "dMH0bHeiRNg"]
 
@@ -186,8 +186,8 @@ enum DemoData {
 
     /// Very cheap substring match so typing in the search box in demo mode
     /// actually narrows a visible list. Falls back to everything when the
-    /// query is empty (shouldn't happen — the view short-circuits empty
-    /// queries — but harmless).
+    /// query is empty (shouldn't happen, the view short-circuits empty
+    /// queries, but harmless).
     static func search(_ query: String) -> [VideoEntry] {
         let q = query.lowercased().trimmingCharacters(in: .whitespaces)
         guard !q.isEmpty else { return homeFeed }

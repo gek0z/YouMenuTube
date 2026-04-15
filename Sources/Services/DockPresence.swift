@@ -4,7 +4,7 @@ import Observation
 /// Tracks which "dockable" windows (player, sign-in) are currently on
 /// screen and flips `NSApp`'s activation policy accordingly. The app
 /// launches as `.accessory` (menubar-only, LSUIElement=true) and
-/// switches to `.regular` while any real window is visible — giving the
+/// switches to `.regular` while any real window is visible, giving the
 /// user a Dock icon to switch to, a standard application menu, and a
 /// Cmd+Tab slot.
 ///

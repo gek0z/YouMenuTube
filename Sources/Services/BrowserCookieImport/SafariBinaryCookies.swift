@@ -14,7 +14,7 @@ import Foundation
 ///     4B BE number of pages N
 ///     N×4B  BE page sizes
 ///     pages concatenated
-///     [checksum / footer — ignored]
+///     [checksum / footer, ignored]
 ///
 ///   Page (little-endian after the 4-byte BE page tag):
 ///     4B    0x00000100 page tag
@@ -33,7 +33,7 @@ import Foundation
 ///     4B    path offset
 ///     4B    value offset
 ///     8B    unused
-///     8B    expiry   (CFAbsoluteTime — seconds since 2001-01-01 UTC)
+///     8B    expiry   (CFAbsoluteTime, seconds since 2001-01-01 UTC)
 ///     8B    creation (CFAbsoluteTime)
 ///     NUL-terminated strings at the declared offsets
 enum SafariBinaryCookies {
@@ -52,7 +52,7 @@ enum SafariBinaryCookies {
             }
             // macOS returns "operation not permitted" for TCC-blocked reads,
             // which Foundation surfaces as generic; treat any read failure
-            // on a path that exists as TCC-denied — user can retry after
+            // on a path that exists as TCC-denied, user can retry after
             // granting Full Disk Access.
             throw BrowserCookieError.tccDenied
         }
@@ -90,7 +90,7 @@ enum SafariBinaryCookies {
 
     private static func parsePage(_ page: Data, into cookies: inout [HTTPCookie], domainSuffix: String) throws {
         guard page.count >= 12 else { return }
-        // Page tag is 4 bytes but we don't validate it strictly — some
+        // Page tag is 4 bytes but we don't validate it strictly, some
         // Safari builds have varied the first byte.
         let cookieCount = Int(page.readUInt32LE(at: 4))
         guard cookieCount > 0, page.count >= 8 + cookieCount * 4 + 4 else { return }
@@ -127,7 +127,7 @@ enum SafariBinaryCookies {
             let value = rec.readCString(at: valueOff)
         else { return nil }
 
-        // Early domain filter — 99% of cookies won't match, and this avoids
+        // Early domain filter, 99% of cookies won't match, and this avoids
         // building HTTPCookie objects we'd drop anyway.
         guard domain.hasSuffix(domainSuffix) else { return nil }
 

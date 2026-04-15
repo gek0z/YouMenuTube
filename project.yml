@@ -103,7 +103,7 @@ targets:
             AHEAD=$(echo "$DESC" | sed -nE 's/.*-([0-9]+)-g[0-9a-f]+$/\1/p')
             IS_DEV="dev+${AHEAD}"
           else
-            SHORT=""   # no tags — keep whatever project.yml put in there
+            SHORT=""   # no tags, keep whatever project.yml put in there
             IS_DEV="dev"
           fi
           [ -n "$SHORT" ] && /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $SHORT" "$INFO_PLIST"
@@ -136,7 +136,7 @@ targets:
 
 schemes:
   YouMenuTube:
-    # Explicit so it coexists with the Demo scheme below — defining any
+    # Explicit so it coexists with the Demo scheme below, defining any
     # top-level schemes disables xcodegen's autogeneration for the target.
     build:
       targets:

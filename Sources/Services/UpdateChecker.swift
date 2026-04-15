@@ -31,7 +31,7 @@ final class UpdateChecker {
         self.session = session
     }
 
-    /// Bundle's `CFBundleShortVersionString` — the value the comparison is
+    /// Bundle's `CFBundleShortVersionString`, the value the comparison is
     /// made against. Anything non-semver (e.g. "main-abc1234" from a nightly)
     /// is treated as "older than any tagged release", which is the right
     /// behaviour for users on the rolling channel.
