@@ -25,7 +25,7 @@ YouTube's own internal "InnerTube" API directly. **No Google Cloud project,
 no API key, no OAuth client to set up.** Sign into youtube.com in your
 usual browser — passkeys, password managers, all of it — and YouMenuTube
 imports the session. Supports Safari, Chrome, Edge, Arc, Brave, Vivaldi,
-Opera, Helium and Firefox.
+Opera, Helium, Firefox and Zen.
 
 > ## ⚠️ Important — read before installing
 >
@@ -190,7 +190,7 @@ work — your normal browser. Three formats covered:
 |---|---|---|
 | **Safari** | Binary cookies inside the Safari container | One-time **Full Disk Access** grant (System Settings → Privacy & Security → Full Disk Access → add YouMenuTube). Without it the import fails cleanly. |
 | **Chrome / Edge / Arc / Brave / Vivaldi / Opera / Helium** (Chromium family) | SQLite + AES-128-CBC with a key in the login Keychain | A standard "YouMenuTube wants to use confidential information stored in 'Chrome Safe Storage' …" Keychain prompt. Click **Always Allow** once per browser. (Helium's Keychain entry is `Helium Storage Key` rather than the usual `… Safe Storage`, but the flow is identical.) |
-| **Firefox** | Plain SQLite, unencrypted | No prompt. |
+| **Firefox / Zen** (Firefox family) | Plain SQLite, unencrypted | No prompt. |
 
 The importer filters strictly to `*.youtube.com`-scoped rows — mixing in
 `.google.com` or `accounts.google.com` cookies makes InnerTube respond

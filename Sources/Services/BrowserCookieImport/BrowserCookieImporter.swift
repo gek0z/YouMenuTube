@@ -77,10 +77,10 @@ enum BrowserCookieImporter {
             all = try ChromiumCookies.read(browser: browser, storeURL: store, domainSuffix: youtubeDomainSuffix)
             log.notice("\(browser.rawValue): read \(all.count) cookies from \(store.path(percentEncoded: false))")
         case .firefox:
-            let stores = BrowserDetector.firefoxCookieStores()
+            let stores = BrowserDetector.firefoxCookieStores(for: browser)
             guard let store = stores.first else { throw BrowserCookieError.noStore(browser) }
             all = try FirefoxCookies.read(at: store, domainSuffix: youtubeDomainSuffix)
-            log.notice("firefox: read \(all.count) cookies from \(store.path(percentEncoded: false))")
+            log.notice("\(browser.rawValue): read \(all.count) cookies from \(store.path(percentEncoded: false))")
         }
 
         // Keep the youtube.com-only filter (load-bearing per SECURITY.md:
