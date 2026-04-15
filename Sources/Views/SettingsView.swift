@@ -37,7 +37,7 @@ struct SettingsView: View {
                     }
                 }
                 Text(
-                    "Uses YouTube's own internal API via your browser session. No Google Cloud setup needed. Personal use only."
+                    "Uses YouTube's own internal API via your browser session. Personal use only."
                 )
                 .font(.caption2).foregroundStyle(.secondary)
             }
