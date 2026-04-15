@@ -1,7 +1,7 @@
 # Contributing to YouMenuTube
 
 Thanks for considering a contribution! YouMenuTube is a small SwiftUI
-menu-bar app and the codebase is intentionally compact — read the README
+menu-bar app and the codebase is intentionally compact; read the README
 first to get a feel for what the app does and the constraints it operates
 under (it's an unofficial client wrapping YouTube's internal **InnerTube**
 API; see the disclaimer in the README).
@@ -21,15 +21,15 @@ Then ⌘R in Xcode. Requires **macOS 15 Sequoia** and **Xcode 16+**.
 
 See the "Project layout" section of the [README](README.md). High-level:
 
-- `Sources/App/` — `@main` entry, scenes, root view.
-- `Sources/Services/` — `YouTubeService` (the only network surface),
+- `Sources/App/`: `@main` entry, scenes, root view.
+- `Sources/Services/`: `YouTubeService` (the only network surface),
   `PlayerController`, `RefreshTrigger`, `Keychain`.
-- `Sources/Views/` — one SwiftUI view per tab, plus the player and sign-in
+- `Sources/Views/`: one SwiftUI view per tab, plus the player and sign-in
   windows. `VideoFeedList` / `VideoList` / `ErrorInline` are the shared
   building blocks.
-- `Sources/Models/` — `VideoEntry`, `PlaylistEntry`.
-- `Sources/Utilities/` — `WindowID`, `UserAgent`, `BuiltInPlaylist`.
-- `Tests/` — Swift Testing target.
+- `Sources/Models/`: `VideoEntry`, `PlaylistEntry`.
+- `Sources/Utilities/`: `WindowID`, `UserAgent`, `BuiltInPlaylist`.
+- `Tests/`: Swift Testing target.
 
 ## Format, lint, test
 
@@ -64,7 +64,7 @@ Configuration lives in [`.swift-format`](.swift-format) (line length 120,
 
 ## CI
 
-GitHub Actions on every PR — but the actual `build-test` job runs **only**
+GitHub Actions run on every PR, but the actual `build-test` job runs **only**
 when the PR carries the `run-ci` label, or when triggered manually from the
 Actions tab. This keeps macOS minutes from being burned on every push. A
 maintainer will usually add the label after a quick eyeball.
@@ -75,11 +75,11 @@ maintainer will usually add the label after a quick eyeball.
 - Match the existing style: terse comments, no hypothetical generality, no
   dead code, identifiers should carry meaning instead of comments explaining
   what code does. (See [`CLAUDE.md` in the system prompt of the maintainers'
-  AI tooling](.) — same principles apply to humans.)
+  AI tooling](.); same principles apply to humans.)
 - Don't add code-level documentation that just narrates the next line. Do
   add a short comment when there's a non-obvious *why* (a workaround, a
   hidden constraint, a quirk of YouTubeKit / Google fingerprinting, etc.).
-- Run `swift-format format -i -r ...` before committing — the pre-commit
+- Run `swift-format format -i -r ...` before committing; the pre-commit
   hook will reject unformatted files.
 - Open an issue first for anything that touches the auth flow, the InnerTube
   cookie filter, the browser cookie readers, or the player window's WKWebView
@@ -92,7 +92,7 @@ maintainer will usually add the label after a quick eyeball.
 
 - Imperative mood: "Add Home tab", not "Added" or "Adds".
 - Subject ≤ 72 characters; explain *why* in the body, not *what*.
-- One topic per commit. We don't squash on merge — keep history readable.
+- One topic per commit. We don't squash on merge; keep history readable.
 
 ## Reporting bugs
 
@@ -106,7 +106,7 @@ soon). For now include:
 - Relevant log output:
   `log stream --predicate 'subsystem == "app.youmenutube"' --level debug`
 
-For **security** issues, see [`SECURITY.md`](SECURITY.md) — please don't
+For **security** issues, see [`SECURITY.md`](SECURITY.md); please don't
 file them publicly.
 
 ## License

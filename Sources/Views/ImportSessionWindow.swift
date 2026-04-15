@@ -5,8 +5,8 @@ import SwiftUI
 private let importLog = Logger(subsystem: "app.youmenutube", category: "import-session")
 
 /// Replacement for the old `YouTubeSignInWindow`. The user signs in to
-/// YouTube *in their own browser* — where passkeys and password managers
-/// all work natively — and we import their `youtube.com` cookies from that
+/// YouTube *in their own browser*, where passkeys and password managers
+/// all work natively, and we import their `youtube.com` cookies from that
 /// browser's on-disk cookie store.
 ///
 /// See `BrowserCookieImporter` for the mechanics, and issue #8 for why the
@@ -56,7 +56,7 @@ struct ImportSessionWindow: View {
             Text("Import your YouTube session")
                 .font(.title2).bold()
             Text(
-                "Sign in to YouTube in your browser — passkeys, password managers, and all. Then pick that browser below and we'll copy the session into YouMenuTube."
+                "Sign in to YouTube in your browser (passkeys, password managers, and all). Then pick that browser below and we'll copy the session into YouMenuTube."
             )
             .font(.callout)
             .foregroundStyle(.secondary)
@@ -117,7 +117,7 @@ struct ImportSessionWindow: View {
                 Banner(
                     icon: "lock.shield",
                     text:
-                        "macOS will ask for your login password once — that's the standard Keychain prompt that lets YouMenuTube read \(browser.displayName)'s cookie-encryption key. Click **Always Allow** to skip it on later imports. Touch ID may appear on Macs that support it."
+                        "macOS will ask for your login password once. That's the standard Keychain prompt that lets YouMenuTube read \(browser.displayName)'s cookie-encryption key. Click **Always Allow** to skip it on later imports. Touch ID may appear on Macs that support it."
                 )
             case .safari:
                 Banner(
@@ -241,14 +241,14 @@ struct ImportSessionWindow: View {
     }
 
     private func bringToFront() {
-        // `NSApp.activate(ignoringOtherApps:)` was softened in macOS 14 — it
+        // `NSApp.activate(ignoringOtherApps:)` was softened in macOS 14, it
         // only activates if the caller was recently user-facing, which a
         // MenuBarExtra popover is not once it closes. `activate()` (no arg)
         // is the replacement and works reliably for LSUIElement apps.
         NSApp.activate()
         // The NSWindow usually isn't in `NSApp.windows` yet when `onAppear`
         // fires on first open. Poll a few times instead of assuming one
-        // runloop is enough — fixes the "Sign in button did nothing"
+        // runloop is enough, fixes the "Sign in button did nothing"
         // symptom when the host app is an LSUIElement + MenuBarExtra.
         Task { @MainActor in
             for _ in 0..<10 {

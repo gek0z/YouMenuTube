@@ -14,7 +14,7 @@ if [[ -z "$staged" ]]; then
 fi
 
 if ! command -v xcrun >/dev/null 2>&1; then
-    red "xcrun not available — install Xcode command-line tools."
+    red "xcrun not available; install Xcode command-line tools."
     exit 1
 fi
 

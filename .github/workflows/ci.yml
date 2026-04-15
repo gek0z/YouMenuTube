@@ -2,7 +2,7 @@ name: CI
 
 on:
   # Only fires the actual job when a PR carries the `run-ci` label, or when
-  # someone manually clicks "Run workflow" — keeps macOS minutes from being
+  # someone manually clicks "Run workflow", keeps macOS minutes from being
   # burned on every push.
   pull_request:
     types: [opened, synchronize, reopened, labeled]

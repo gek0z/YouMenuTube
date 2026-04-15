@@ -35,7 +35,7 @@ func render(sizePx: Int) -> Data {
         cornerHeight: cornerRadius,
         transform: nil)
 
-    // Background gradient — bright red at top, deeper red at bottom.
+    // Background gradient, bright red at top, deeper red at bottom.
     ctx.saveGState()
     ctx.addPath(path)
     ctx.clip()
@@ -53,7 +53,7 @@ func render(sizePx: Int) -> Data {
         options: [])
     ctx.restoreGState()
 
-    // Top highlight — subtle glassy sheen.
+    // Top highlight, subtle glassy sheen.
     ctx.saveGState()
     ctx.addPath(path)
     ctx.clip()
@@ -71,10 +71,10 @@ func render(sizePx: Int) -> Data {
         options: [])
     ctx.restoreGState()
 
-    // Play triangle — equilateral pointing right, centroid at icon centre.
+    // Play triangle, equilateral pointing right, centroid at icon centre.
     // The vertices (r, 0), (-r/2, ±r·√3/2) average to (0, 0), so placing
-    // them relative to (cx, cy) puts the centroid — i.e. the visual
-    // balance point — exactly at the icon's centre. The tip extends
+    // them relative to (cx, cy) puts the centroid, i.e. the visual
+    // balance point, exactly at the icon's centre. The tip extends
     // further right than the back extends left, which is the "play
     // button" look people expect (see SF Symbols' play.fill).
     let cx = s / 2

@@ -113,7 +113,7 @@ struct ThumbnailView: View {
                 Color.gray.opacity(0.15)
             }
         }
-        // Disable the implicit cross-fade — its layout pass jitters LazyVStack
+        // Disable the implicit cross-fade, its layout pass jitters LazyVStack
         // when many rows finish loading in quick succession during fast scrolls.
         .transaction { $0.animation = nil }
     }

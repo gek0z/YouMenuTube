@@ -13,7 +13,7 @@ Please **do not** open a public GitHub issue for security problems.
 Use one of the following private channels:
 
 - GitHub's [private vulnerability reporting](https://github.com/gek0z/YouMenuTube/security/advisories/new)
-  (preferred — gives us a private discussion thread + draft advisory).
+  (preferred: gives us a private discussion thread + draft advisory).
 - Email the maintainer (see the GitHub profile of [@gek0z](https://github.com/gek0z)).
 
 Please include:
@@ -25,12 +25,12 @@ Please include:
 4. Whether you'd like to be credited in the advisory.
 
 We aim to acknowledge reports within 7 days. Because this is a hobby project,
-fix turnaround depends on availability — critical issues will be prioritised.
+fix turnaround depends on availability; critical issues will be prioritised.
 
 ## Supported versions
 
 Only `main` is supported. Older tagged releases will not receive backported
-fixes — upgrade to the latest release.
+fixes; upgrade to the latest release.
 
 ## Scope
 
@@ -43,7 +43,7 @@ In scope:
 Out of scope:
 
 - Vulnerabilities in YouTube, Google, or any first-party Apple framework.
-- Vulnerabilities in third-party dependencies (report those upstream — currently
+- Vulnerabilities in third-party dependencies (report those upstream; currently
   only [YouTubeKit](https://github.com/b5i/YouTubeKit)).
 - The fact that YouMenuTube uses YouTube's internal **InnerTube** API. This is
   documented in the README and is a deliberate design choice, not a security
@@ -67,7 +67,7 @@ of the selected browser's on-disk cookie store:
 - **Safari** requires the user to grant YouMenuTube **Full Disk Access**
   (System Settings → Privacy & Security → Full Disk Access) because the
   Safari cookie file lives inside a protected container. Without this grant
-  the reader fails cleanly — it cannot silently read Safari cookies.
+  the reader fails cleanly; it cannot silently read Safari cookies.
 - **Chromium-family browsers** (Chrome, Edge, Arc, Brave, Vivaldi, Opera,
   Helium) encrypt their cookie values with an AES key stored in the macOS
   login Keychain under e.g. `Chrome Safe Storage` (or `Helium Storage Key`
@@ -89,4 +89,4 @@ present. No other domain's cookies are ever persisted or sent.
   InnerTube endpoints.
 - No background activity when the menu bar popover is closed.
 
-If you find evidence to the contrary, that's a bug — please report it.
+If you find evidence to the contrary, that's a bug; please report it.

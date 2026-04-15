@@ -2,7 +2,7 @@ import Foundation
 import SQLite3
 
 /// Reads cookies out of Firefox's `cookies.sqlite`. Firefox stores cookie
-/// values in plaintext, so no key derivation or decryption is needed — just
+/// values in plaintext, so no key derivation or decryption is needed, just
 /// SQLite.
 ///
 /// The file can be opened even while Firefox is running because we open it

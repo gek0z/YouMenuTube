@@ -37,7 +37,7 @@ struct SettingsView: View {
                     }
                 }
                 Text(
-                    "Uses YouTube's own internal API via your browser session — no Google Cloud setup needed. Personal use only."
+                    "Uses YouTube's own internal API via your browser session. Personal use only."
                 )
                 .font(.caption2).foregroundStyle(.secondary)
             }
@@ -133,7 +133,7 @@ struct SettingsView: View {
         if let commit {
             return "\(head) · \(commit)"
         }
-        return "\(head) — \(build)"
+        return "\(head) · \(build)"
     }
 
     @ViewBuilder
