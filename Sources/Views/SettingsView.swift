@@ -95,6 +95,8 @@ struct SettingsView: View {
             Section("About") {
                 LabeledContent("Version", value: versionDisplay)
                 updateRow
+                Link("Visit Website", destination: URL(string: "https://youmenutube.riccardo.lol")!)
+                    .font(.caption)
             }
 
             if let err = yt.lastError {
