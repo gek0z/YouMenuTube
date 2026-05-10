@@ -28,7 +28,9 @@ enum Tab: String, CaseIterable, Identifiable {
 struct RootView: View {
     @Environment(YouTubeService.self) private var yt
     @Environment(RefreshTrigger.self) private var refresh
+    @Environment(UpdateChecker.self) private var updates
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openURL) private var openURL
     @State private var tab: Tab = .home
 
     /// Tabs whose content has a "reload from server" concept. The header
@@ -44,6 +46,7 @@ struct RootView: View {
             tabBar
         }
         .background(.ultraThinMaterial)
+        .task { await updates.check() }
     }
 
     private func presentSignIn() {
@@ -58,6 +61,16 @@ struct RootView: View {
         HStack(spacing: 8) {
             YouTubeLogo()
             Text("YouMenuTube").font(.headline)
+            if case .available(let version, let url) = updates.state {
+                Button {
+                    openURL(url)
+                } label: {
+                    Label("Update", systemImage: "arrow.down.circle.fill")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Update available: \(version)")
+            }
             Spacer()
             if Self.refreshableTabs.contains(tab) {
                 Button {
