@@ -301,6 +301,14 @@ under service `com.youmenutube.app`, and uses them as the `Cookie` header
 on its own InnerTube requests. Sign out at any time to wipe them
 (Settings → Account → Sign out).
 
+## Contributors
+
+Thanks to everyone who has contributed:
+
+[![Contributors](https://contrib.rocks/image?repo=gek0z/YouMenuTube)](https://github.com/gek0z/YouMenuTube/graphs/contributors)
+
+Made with [contrib.rocks](https://contrib.rocks).
+
 ## License
 
 YouMenuTube is licensed under the [Apache License 2.0](LICENSE). See
