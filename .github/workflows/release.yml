@@ -39,7 +39,7 @@ jobs:
     name: Build & publish DMG
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
@@ -124,7 +124,7 @@ jobs:
           echo "Built $DMG ($(du -h "$DMG" | cut -f1))"
 
       - name: Publish release
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           tag_name: ${{ steps.plan.outputs.tag }}
           name: ${{ steps.plan.outputs.tag }}
